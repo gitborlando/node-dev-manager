@@ -2,7 +2,7 @@ import {
   createEmptyProjectForm,
   type ProjectConfig,
   type ProjectForm,
-} from '@node-dev-mgr/shared'
+} from '../shared'
 
 const storageKey = 'node-dev-mgr/project-configs/v1'
 

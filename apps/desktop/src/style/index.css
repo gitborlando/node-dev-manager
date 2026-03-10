@@ -1,7 +1,7 @@
 :root {
-  --page-bg: #eef4f8;
-  --panel-bg: rgba(255, 255, 255, 0.9);
-  --panel-border: rgba(255, 255, 255, 0.72);
+  --page-bg: #f2f6f8;
+  --panel-bg: rgba(255, 255, 255, 0.92);
+  --panel-border: rgba(255, 255, 255, 0.76);
   --line: #e2e8f0;
   --text-main: #334155;
   --text-strong: #0f172a;
@@ -42,8 +42,8 @@ body,
 body {
   min-width: 360px;
   background:
-    radial-gradient(circle at top left, rgba(125, 211, 252, 0.2), transparent 28%),
-    linear-gradient(180deg, #f4f9fd 0%, #eef4f8 100%);
+    radial-gradient(circle at top left, rgba(125, 211, 252, 0.12), transparent 20%),
+    linear-gradient(180deg, #f8fbfc 0%, #f2f6f8 100%);
 }
 
 button,

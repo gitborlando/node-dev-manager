@@ -70,7 +70,6 @@ class FatalBoundary extends Component<FatalBoundaryProps, FatalBoundaryState> {
 }
 
 const fatalStyle = {
-  margin: 0,
   minHeight: '100vh',
   padding: '24px',
   background: '#0f172a',

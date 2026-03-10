@@ -2,7 +2,7 @@ import type {
   ProcessEvent,
   ProcessSnapshot,
   ProcessStartInput,
-} from '@node-dev-mgr/shared'
+} from '../shared'
 import { browserProcessBridge } from './browser-process-bridge'
 import { createElectronProcessBridge } from './electron-process-bridge'
 

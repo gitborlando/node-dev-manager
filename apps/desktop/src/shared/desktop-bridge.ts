@@ -1,8 +1,8 @@
 import type {
   ProcessEvent,
-  ProjectImportResult,
   ProcessSnapshot,
   ProcessStartInput,
+  ProjectImportResult,
 } from './process-contract'
 import { processEventName } from './process-contract'
 
@@ -11,6 +11,7 @@ export const desktopProcessChannel = {
   start: 'process:start',
   stop: 'process:stop',
   restart: 'process:restart',
+  importProject: 'project:import',
 } as const
 
 export const desktopProcessEventChannel = processEventName

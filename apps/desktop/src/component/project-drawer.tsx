@@ -1,7 +1,7 @@
 import { css, cx } from '@linaria/core'
 import type { FormEvent, ReactNode } from 'react'
 import { FolderOpen, Plus, Trash2, X } from 'lucide-react'
-import type { ProjectCommandOption, ProjectForm } from '@node-dev-mgr/shared'
+import type { ProjectCommandOption, ProjectForm } from '../shared'
 import { IconButton } from './icon-button'
 import { inputClass } from '../style/common'
 
@@ -138,13 +138,6 @@ export const ProjectDrawer = ({
               <Plus size={14} />
               保存
             </button>
-            <button
-              className={cx(footerButtonClass, secondaryButtonClass)}
-              onClick={onClose}
-              type="button">
-              <X size={14} />
-              关闭
-            </button>
           </div>
         </form>
       </aside>
@@ -173,7 +166,7 @@ const drawerClass = css`
   left: 0;
   z-index: 20;
   display: flex;
-  width: min(100%, 360px);
+  width: min(100%, 300px);
   flex-direction: column;
   border-right: 1px solid var(--line);
   background: white;
@@ -182,15 +175,15 @@ const drawerClass = css`
 
 const headerClass = css`
   display: flex;
-  height: 44px;
+  height: 34px;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  padding: 0 16px;
+  padding: 0 8px;
 `
 
 const headerTitleClass = css`
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-strong);
 `
@@ -198,7 +191,7 @@ const headerTitleClass = css`
 const headerActionClass = css`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 `
 
 const dangerButtonClass = css`
@@ -209,12 +202,12 @@ const formClass = css`
   min-height: 0;
   flex: 1;
   overflow: auto;
-  padding: 16px;
+  padding: 8px;
 `
 
 const fieldStackClass = css`
   display: grid;
-  gap: 12px;
+  gap: 8px;
 `
 
 const pathFieldClass = css`
@@ -224,7 +217,7 @@ const pathFieldClass = css`
 const pathPickerClass = css`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 6px;
 `
 
 const folderIconClass = css`
@@ -241,14 +234,14 @@ const pathInputClass = css`
 
 const pickerButtonClass = css`
   display: inline-flex;
-  height: 32px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: white;
-  padding: 0 12px;
-  font-size: 12px;
+  padding: 0 8px;
+  font-size: 10px;
   color: #334155;
   cursor: pointer;
 
@@ -264,13 +257,13 @@ const monoInputClass = css`
 `
 
 const textareaClass = css`
-  min-height: 96px;
+  min-height: 72px;
   width: 100%;
   resize: vertical;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: white;
-  padding: 10px 12px;
+  padding: 8px;
   color: var(--text-main);
   outline: none;
   transition:
@@ -285,23 +278,21 @@ const textareaClass = css`
 
 const footerClass = css`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 16px;
+  gap: 6px;
   border-top: 1px solid var(--line);
-  padding-top: 16px;
+  padding-top: 8px;
 `
 
 const footerButtonClass = css`
   display: inline-flex;
-  height: 36px;
+  height: 32px;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--line);
   background: white;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition:
     border-color 0.18s ease,
@@ -319,22 +310,13 @@ const primaryButtonClass = css`
   }
 `
 
-const secondaryButtonClass = css`
-  color: var(--text-main);
-
-  &:hover {
-    border-color: var(--sky-200);
-    background: var(--sky-50);
-  }
-`
-
 const fieldClass = css`
   display: block;
 `
 
 const fieldLabelClass = css`
-  margin-bottom: 6px;
-  font-size: 11px;
+  padding-bottom: 4px;
+  font-size: 10px;
   font-weight: 500;
   color: #475569;
 `

@@ -1,4 +1,4 @@
-import type { DesktopProcessApi } from '@node-dev-mgr/shared'
+import type { DesktopProcessApi } from '../shared'
 import type { ProcessBridge } from './process-bridge'
 
 export const createElectronProcessBridge = (): ProcessBridge => ({

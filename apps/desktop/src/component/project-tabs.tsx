@@ -4,7 +4,7 @@ import {
   createStoppedSnapshot,
   type ProcessSnapshot,
   type ProjectConfig,
-} from '@node-dev-mgr/shared'
+} from '../shared'
 
 type ProjectTabsProps = {
   activeProjectId: string
@@ -36,6 +36,7 @@ export const ProjectTabs = ({
         const isActive = project.id === activeProjectId
         const isRunning = runtime.status === 'running'
         const isBusy = runtime.status === 'starting' || runtime.status === 'stopping'
+        const actionLabel = getActionLabel(runtime.status, isRunning)
 
         return (
           <div
@@ -47,23 +48,20 @@ export const ProjectTabs = ({
               title={project.cwd}>
               <span
                 className={cx(
-                  dotClass,
-                  isRunning
-                    ? dotRunningClass
-                    : runtime.status === 'error'
-                      ? dotErrorClass
-                      : dotIdleClass,
+                  stateMarkClass,
+                  toneClassMap[runtime.status],
                 )}
               />
               <span className={nameClass}>{project.name}</span>
             </button>
 
             <button
-              className={actionClass}
+              className={cx(actionClass, toneClassMap[runtime.status])}
               disabled={isBusy}
               onClick={() => (isRunning ? onStop(project.id) : onStart(project.id))}
-              title={isRunning ? '停止' : '启动'}>
-              {isRunning ? <Square size={12} /> : <Play size={12} />}
+              title={actionLabel}>
+              {isRunning ? <Square size={11} /> : <Play size={11} />}
+              <span>{actionLabel}</span>
             </button>
 
             <button
@@ -81,26 +79,26 @@ export const ProjectTabs = ({
 
 const scrollerClass = css`
   display: flex;
-  gap: 8px;
+  gap: 4px;
   overflow-x: auto;
-  padding: 12px 16px 8px;
+  padding: 0 8px;
 `
 
 const emptyClass = css`
-  padding: 20px 16px 8px;
-  font-size: 12px;
+  padding: 8px;
+  font-size: 10px;
   color: var(--text-soft);
 `
 
 const tabClass = css`
   display: inline-flex;
   min-width: 0;
-  max-width: 240px;
+  max-width: 200px;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   border: 1px solid var(--line);
-  border-radius: 14px 14px 0 0;
-  padding: 0 8px;
+  border-radius: 10px;
+  padding: 0 4px;
 `
 
 const tabActiveClass = css`
@@ -115,9 +113,9 @@ const tabIdleClass = css`
 const tabButtonClass = css`
   display: inline-flex;
   min-width: 0;
-  height: 36px;
+  height: 26px;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   border: none;
   background: transparent;
   padding: 0;
@@ -125,48 +123,37 @@ const tabButtonClass = css`
   color: var(--text-main);
 `
 
-const dotClass = css`
-  height: 8px;
-  width: 8px;
+const stateMarkClass = css`
+  height: 6px;
+  width: 6px;
   border-radius: 999px;
   flex: none;
-`
-
-const dotRunningClass = css`
-  background: #10b981;
-`
-
-const dotErrorClass = css`
-  background: #f43f5e;
-`
-
-const dotIdleClass = css`
-  background: #cbd5e1;
 `
 
 const nameClass = css`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
 `
 
 const actionClass = css`
   display: inline-flex;
-  height: 24px;
-  width: 24px;
+  height: 20px;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-radius: 8px;
+  gap: 3px;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: transparent;
   color: #64748b;
+  padding: 0 5px;
+  font-size: 9px;
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: var(--sky-50);
-    color: var(--sky-700);
+    filter: brightness(0.98);
   }
 
   &:disabled {
@@ -174,3 +161,42 @@ const actionClass = css`
     cursor: not-allowed;
   }
 `
+
+const toneClassMap = {
+  starting: css`
+    background: #eff6ff;
+    color: #1d4ed8;
+  `,
+  running: css`
+    background: #ecfdf5;
+    color: #047857;
+  `,
+  stopping: css`
+    background: #f8fafc;
+    color: #64748b;
+  `,
+  stopped: css`
+    background: #f8fafc;
+    color: #64748b;
+  `,
+  error: css`
+    background: #fff1f2;
+    color: #be123c;
+  `,
+} satisfies Record<ProcessSnapshot['status'], string>
+
+const getActionLabel = (
+  status: ProcessSnapshot['status'],
+  isRunning: boolean,
+) => {
+  if (status === 'starting') {
+    return '忙'
+  }
+  if (status === 'stopping') {
+    return '停'
+  }
+  if (status === 'error') {
+    return '重'
+  }
+  return isRunning ? '停' : '启'
+}

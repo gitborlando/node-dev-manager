@@ -1,14 +1,12 @@
 import { css, cx } from '@linaria/core'
 import {
-  Activity,
-  Layers3,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
   Terminal,
 } from 'lucide-react'
-import { useDevManager } from '@node-dev-mgr/process-core'
-import { createStoppedSnapshot } from '@node-dev-mgr/shared'
+import { useDevManager } from './core'
+import { createStoppedSnapshot } from './shared'
 import { IconButton } from './component/icon-button'
 import { LogPanel } from './component/log-panel'
 import { ProjectDrawer } from './component/project-drawer'
@@ -24,11 +22,6 @@ export const App = () => {
     ? state.runtimeById[activeProject.id] ?? createStoppedSnapshot(activeProject.id)
     : null
   const activeLogs = activeProject ? state.logsById[activeProject.id] ?? [] : []
-  const runningCount = state.projects.reduce((count, project) => {
-    const snapshot = state.runtimeById[project.id]
-    return snapshot?.status === 'running' ? count + 1 : count
-  }, 0)
-  const modeLabel = state.mode === 'desktop' ? 'Electron 桌面模式' : '浏览器演示模式'
 
   return (
     <div className={pageClass}>
@@ -49,41 +42,24 @@ export const App = () => {
             <div className={brandIconClass}>
               <Terminal size={16} />
             </div>
-            <div>
-              <div className={brandTitleClass}>Node Dev Manager</div>
-              <div className={brandSubtitleClass}>{modeLabel}</div>
-            </div>
+            <div className={brandTitleClass}>Node Dev Manager</div>
           </div>
 
           <div className={toolbarClass}>
-            <div className={statCardClass}>
-              <Activity className={statIconClass} size={14} />
-              <span>{runningCount}</span>
-            </div>
-            <ToolButton onClick={controller.seedDemo}>
-              <Layers3 size={14} />
-              示例
-            </ToolButton>
             <ToolButton
               className={primaryToolButtonClass}
               onClick={controller.openCreateDrawer}>
               <Plus size={14} />
               新建
             </ToolButton>
+            {state.mode !== 'desktop' ? (
+              <ToolButton onClick={controller.seedDemo}>示例</ToolButton>
+            ) : null}
           </div>
         </header>
 
         <main className={mainClass}>
           <section className={cx(panelClass, workspaceClass)}>
-            <div className={workspaceHeaderClass}>
-              <div>
-                <div className={sectionTitleClass}>项目会话</div>
-                <div className={sectionSubtitleClass}>
-                  每个项目一个标签，日志和控制都在同一工作区完成
-                </div>
-              </div>
-            </div>
-
             <ProjectTabs
               activeProjectId={state.activeProjectId}
               projects={state.projects}
@@ -105,9 +81,6 @@ export const App = () => {
               project={activeProject}
               runtime={activeRuntime}
               onClearLogs={controller.clearActiveLogs}
-              onDelete={(projectId) => {
-                void controller.deleteProject(projectId)
-              }}
               onEdit={controller.openEditDrawer}
               onRestart={(projectId) => {
                 void controller.restartProject(projectId)
@@ -150,69 +123,54 @@ const pageClass = css`
 const shellClass = css`
   display: grid;
   min-height: 100vh;
-  grid-template-rows: 56px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 `
 
 const topbarClass = css`
   display: flex;
+  min-height: 36px;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   border-bottom: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.8);
-  padding: 0 16px;
-  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0 8px;
+  backdrop-filter: blur(14px);
+
+  @media (max-width: 860px) {
+    flex-wrap: wrap;
+  }
 `
 
 const brandWrapClass = css`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 `
 
 const brandIconClass = css`
   display: flex;
-  height: 32px;
-  width: 32px;
+  height: 22px;
+  width: 22px;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--sky-200);
-  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   background: var(--sky-50);
   color: var(--sky-700);
 `
 
 const brandTitleClass = css`
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-strong);
-`
-
-const brandSubtitleClass = css`
-  font-size: 10px;
-  color: var(--text-soft);
 `
 
 const toolbarClass = css`
   display: flex;
   align-items: center;
-  gap: 8px;
-`
-
-const statCardClass = css`
-  display: inline-flex;
-  height: 32px;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: white;
-  padding: 0 12px;
-  font-size: 11px;
-  color: #475569;
-`
-
-const statIconClass = css`
-  color: var(--emerald-700);
+  gap: 4px;
+  flex-wrap: wrap;
 `
 
 const primaryToolButtonClass = css`
@@ -228,28 +186,9 @@ const primaryToolButtonClass = css`
 const mainClass = css`
   position: relative;
   min-height: 0;
-  padding: 16px;
+  padding: 8px;
 `
 
 const workspaceClass = css`
   height: 100%;
-`
-
-const workspaceHeaderClass = css`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  padding: 12px 16px;
-`
-
-const sectionTitleClass = css`
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-strong);
-`
-
-const sectionSubtitleClass = css`
-  font-size: 10px;
-  color: var(--text-soft);
 `

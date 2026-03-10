@@ -2,7 +2,7 @@ import {
   createStoppedSnapshot,
   type ProcessEvent,
   type ProcessSnapshot,
-} from '@node-dev-mgr/shared'
+} from '../shared'
 import type { ProcessBridge } from './process-bridge'
 
 type MockRecord = {

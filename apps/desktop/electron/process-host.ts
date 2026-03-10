@@ -8,7 +8,7 @@ import type {
   ProcessSnapshot,
   ProcessStartInput,
   ProcessStatus,
-} from '@node-dev-mgr/shared'
+} from '../src/shared'
 
 type ManagedChild = ChildProcessByStdio<null, Readable, Readable>
 
@@ -16,6 +16,8 @@ type ManagedProcess = {
   child: ManagedChild | null
   snapshot: ProcessSnapshot
   stopRequested: boolean
+  waitForExit: Promise<void>
+  resolveExit: () => void
 }
 
 export class ProcessHost {
@@ -54,6 +56,7 @@ export class ProcessHost {
       child,
       snapshot,
       stopRequested: false,
+      ...createDeferred(),
     })
 
     this.emitEvent({
@@ -130,7 +133,8 @@ export class ProcessHost {
       throw new Error('PROCESS_STOP_FAILED')
     }
 
-    return cloneSnapshot(record.snapshot)
+    await waitForExit(record.waitForExit)
+    return cloneSnapshot(this.processes.get(processId)?.snapshot ?? record.snapshot)
   }
 
   restartProcess = async (input: ProcessStartInput) => {
@@ -213,6 +217,7 @@ export class ProcessHost {
       }
 
       record.child = null
+      record.resolveExit()
       record.snapshot = {
         ...record.snapshot,
         status: nextStatus,
@@ -331,3 +336,20 @@ const isActiveStatus = (status: ProcessSnapshot['status']) =>
 
 const toErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
+
+const createDeferred = () => {
+  let resolveExit = () => {}
+
+  const waitForExit = new Promise<void>((resolve) => {
+    resolveExit = resolve
+  })
+
+  return {
+    waitForExit,
+    resolveExit,
+  }
+}
+
+const waitForExit = async (promise: Promise<void>) => {
+  await Promise.race([promise, delay(3000).then(() => undefined)])
+}

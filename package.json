@@ -4,12 +4,12 @@
   "version": "0.1.0",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "pnpm --filter @node-dev-mgr/desktop dev",
-    "desktop:dev": "pnpm --filter @node-dev-mgr/desktop dev",
-    "build": "pnpm --filter @node-dev-mgr/desktop build",
-    "desktop:dist": "pnpm --filter @node-dev-mgr/desktop dist",
-    "typecheck": "pnpm --filter @node-dev-mgr/desktop typecheck",
-    "electron:dev": "pnpm --filter @node-dev-mgr/desktop dev",
-    "electron:dist": "pnpm --filter @node-dev-mgr/desktop dist"
+    "dev": "pnpm --dir apps/desktop dev",
+    "desktop:dev": "pnpm --dir apps/desktop dev",
+    "build": "pnpm --dir apps/desktop build",
+    "desktop:dist": "pnpm --dir apps/desktop dist",
+    "typecheck": "pnpm --dir apps/desktop typecheck",
+    "electron:dev": "pnpm --dir apps/desktop dev",
+    "electron:dist": "pnpm --dir apps/desktop dist"
   }
 }

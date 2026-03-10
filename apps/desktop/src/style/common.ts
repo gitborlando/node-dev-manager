@@ -5,30 +5,30 @@ export const panelClass = css`
   flex-direction: column;
   min-height: 0;
   border: 1px solid var(--panel-border);
-  border-radius: 20px;
+  border-radius: 10px;
   background: var(--panel-bg);
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
   backdrop-filter: blur(12px);
 `
 
 export const sectionHeaderClass = css`
   display: flex;
-  min-height: 44px;
+  min-height: 34px;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 4px;
   border-bottom: 1px solid var(--line);
-  padding: 0 16px;
+  padding: 0 8px;
 `
 
 export const iconButtonClass = css`
   display: inline-flex;
-  height: 28px;
-  width: 28px;
+  height: 20px;
+  width: 20px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 6px;
   background: white;
   color: #475569;
   cursor: pointer;
@@ -53,15 +53,16 @@ export const iconButtonClass = css`
 
 export const toolButtonClass = css`
   display: inline-flex;
-  height: 28px;
+  height: 20px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0 10px;
+  gap: 4px;
+  padding: 0 6px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 6px;
   background: white;
   color: #334155;
+  font-size: 10px;
   cursor: pointer;
   transition:
     border-color 0.18s ease,
@@ -83,12 +84,12 @@ export const toolButtonClass = css`
 `
 
 export const inputClass = css`
-  height: 32px;
+  height: 28px;
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: white;
-  padding: 0 12px;
+  padding: 0 8px;
   color: var(--text-main);
   outline: none;
   transition:
@@ -101,11 +102,3 @@ export const inputClass = css`
   }
 `
 
-export const chipClass = css`
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  background: #f1f5f9;
-  padding: 4px 8px;
-  color: #64748b;
-`

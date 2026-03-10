@@ -1,9 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { DesktopProcessApi, ProcessEvent } from '@node-dev-mgr/shared'
-import {
-  desktopProcessChannel,
-  desktopProcessEventChannel,
-} from './ipc-channel'
+import type { DesktopProcessApi, ProcessEvent } from '../src/shared'
+import { desktopProcessChannel, desktopProcessEventChannel } from './ipc-channel'
 
 const desktopApi: DesktopProcessApi = {
   listProcesses: () => ipcRenderer.invoke(desktopProcessChannel.list),

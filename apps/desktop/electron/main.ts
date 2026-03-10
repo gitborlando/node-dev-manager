@@ -10,21 +10,20 @@ import {
   ipcMain,
   nativeImage,
 } from 'electron'
-import type { ProjectCommandOption, ProjectImportResult } from '@node-dev-mgr/shared'
+import type { ProjectCommandOption, ProjectImportResult } from '../src/shared'
 import { ProcessHost } from './process-host'
-import {
-  desktopProcessChannel,
-  desktopProcessEventChannel,
-} from './ipc-channel'
+import { desktopProcessChannel, desktopProcessEventChannel } from './ipc-channel'
 
 const rendererDevUrl = 'http://127.0.0.1:1420'
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const rendererIndexPath = path.join(__dirname, '..', 'dist', 'index.html')
-const trayIconPath = path.join(__dirname, '..', 'src-tauri', 'icons', 'icon.ico')
+const trayIconPath = path.join(__dirname, '..', 'assets', 'icon.ico')
 
 let mainWindow: BrowserWindow | null = null
 let appTray: Tray | null = null
 let isQuitting = false
+let quitTask: Promise<void> | null = null
+let quitReady = false
 
 const processHost = new ProcessHost((event) => {
   mainWindow?.webContents.send(desktopProcessEventChannel, event)
@@ -32,12 +31,13 @@ const processHost = new ProcessHost((event) => {
 
 const createMainWindow = async () => {
   mainWindow = new BrowserWindow({
-    width: 1460,
-    height: 940,
-    minWidth: 1180,
-    minHeight: 760,
+    width: 820,
+    height: 560,
+    minWidth: 820,
+    minHeight: 560,
     backgroundColor: '#e2e8f0',
     autoHideMenuBar: true,
+    resizable: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -94,9 +94,15 @@ app.whenReady().then(async () => {
   })
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
   isQuitting = true
-  void processHost.dispose()
+
+  if (quitReady) {
+    return
+  }
+
+  event.preventDefault()
+  void requestAppQuit()
 })
 
 app.on('window-all-closed', () => {
@@ -120,8 +126,7 @@ const createTray = () => {
       {
         label: '退出',
         click: () => {
-          isQuitting = true
-          app.quit()
+          void requestAppQuit()
         },
       },
     ]),
@@ -142,6 +147,23 @@ const showMainWindow = () => {
 
   mainWindow.show()
   mainWindow.focus()
+}
+
+const requestAppQuit = async () => {
+  if (quitTask) {
+    return quitTask
+  }
+
+  isQuitting = true
+  quitTask = (async () => {
+    appTray?.destroy()
+    appTray = null
+    await processHost.dispose()
+    quitReady = true
+    app.quit()
+  })()
+
+  return quitTask
 }
 
 const importProjectFromDirectory = async (): Promise<ProjectImportResult | null> => {

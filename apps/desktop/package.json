@@ -19,8 +19,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@node-dev-mgr/process-core": "workspace:*",
-    "@node-dev-mgr/shared": "workspace:*",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "lucide-react": "^0.511.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -31,25 +31,26 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.4.0",
+    "@wyw-in-js/vite": "^0.5.5",
     "concurrently": "^9.0.1",
     "electron": "^37.2.0",
     "electron-builder": "^26.0.12",
     "nodemon": "^3.1.10",
-    "typescript": "^5.7.2",
     "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
     "vite": "^6.2.0",
-    "wait-on": "^8.0.3",
-    "@wyw-in-js/vite": "^0.5.5"
+    "wait-on": "^8.0.3"
   },
   "build": {
     "appId": "com.node-dev-mgr.desktop",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "win": {
-      "icon": "src-tauri/icons/icon.ico",
+      "icon": "assets/icon.ico",
       "signAndEditExecutable": false
     },
     "directories": {

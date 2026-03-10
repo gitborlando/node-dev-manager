@@ -7,21 +7,24 @@ import { defineConfig } from 'vite'
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const srcPattern = new RegExp(
-  `${escapeRegExp(path.resolve(rootDir, 'src')).replaceAll('\\\\', '[\\\\/]')}[\\\\/].*\\.[jt]sx?$`,
+const srcRootPattern = escapeRegExp(path.resolve(rootDir, 'src')).replaceAll(
+  '\\\\',
+  '[\\\\/]',
+)
+const styleEntrypointPattern = new RegExp(
+  `${srcRootPattern}[\\\\/](app\\.[jt]sx?|component[\\\\/].*\\.[jt]sx?|style[\\\\/].*\\.[jt]sx?)$`,
 )
 
 export default defineConfig({
   plugins: [
     wywInJs({
-      include: [srcPattern],
+      include: [styleEntrypointPattern],
     }),
     react(),
   ],
   resolve: {
     alias: {
       src: path.resolve(rootDir, 'src'),
-      types: path.resolve(rootDir, '../../packages/shared/src'),
     },
   },
   build: {

@@ -8,7 +8,7 @@ import {
   type ProjectCommandOption,
   type ProjectConfig,
   type ProjectForm,
-} from '@node-dev-mgr/shared'
+} from '../shared'
 import { getDesktopApi } from './electron-process-bridge'
 import { createProcessBridge } from './process-bridge'
 import { projectStorage } from './project-storage'
@@ -214,10 +214,7 @@ export class DevManagerController {
       commandOptions: [],
     })
 
-    this.pushSystemLog(
-      nextProject.id,
-      current ? '项目配置已更新' : '项目已保存',
-    )
+    this.pushSystemLog(nextProject.id, current ? '项目配置已更新' : '项目已保存')
   }
 
   clearActiveLogs = () => {
@@ -502,8 +499,7 @@ const normalizeForm = (form: ProjectForm): ProjectForm => ({
   note: form.note.trim(),
 })
 
-const createId = () =>
-  `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 const toStartInput = (project: ProjectConfig): ProcessStartInput => ({
   id: project.id,
