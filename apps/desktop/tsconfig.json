@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "types": ["vite/client", "react", "react-dom", "node"],
+    "paths": {
+      "src/*": ["./src/*"],
+      "types/*": ["../../packages/shared/src/*"],
+      "@node-dev-mgr/shared": ["../../packages/shared/src/index.ts"],
+      "@node-dev-mgr/shared/*": ["../../packages/shared/src/*"],
+      "@node-dev-mgr/process-core": ["../../packages/process-core/src/index.ts"],
+      "@node-dev-mgr/process-core/*": ["../../packages/process-core/src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

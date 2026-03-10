@@ -1,0 +1,15 @@
+{
+  "name": "@node-dev-mgr/process-core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@node-dev-mgr/shared": "workspace:*",
+    "@tauri-apps/api": "2.0.0",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0"
+  }
+}
