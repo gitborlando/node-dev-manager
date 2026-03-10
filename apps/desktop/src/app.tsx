@@ -42,7 +42,7 @@ export const App = () => {
     const snapshot = state.runtimeById[project.id]
     return snapshot?.status === 'running' ? count + 1 : count
   }, 0)
-  const modeLabel = state.mode === 'desktop' ? 'Tauri 桌面模式' : '浏览器演示模式'
+  const modeLabel = state.mode === 'desktop' ? 'Electron 桌面模式' : '浏览器演示模式'
 
   return (
     <div className={pageClass}>

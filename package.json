@@ -5,10 +5,11 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "pnpm --filter @node-dev-mgr/desktop dev",
-    "desktop:dev": "pnpm --filter @node-dev-mgr/desktop tauri:dev",
+    "desktop:dev": "pnpm --filter @node-dev-mgr/desktop dev",
     "build": "pnpm --filter @node-dev-mgr/desktop build",
+    "desktop:dist": "pnpm --filter @node-dev-mgr/desktop dist",
     "typecheck": "pnpm --filter @node-dev-mgr/desktop typecheck",
-    "tauri:dev": "pnpm --filter @node-dev-mgr/desktop tauri:dev",
-    "tauri:build": "pnpm --filter @node-dev-mgr/desktop tauri:build"
+    "electron:dev": "pnpm --filter @node-dev-mgr/desktop dev",
+    "electron:dist": "pnpm --filter @node-dev-mgr/desktop dist"
   }
 }
