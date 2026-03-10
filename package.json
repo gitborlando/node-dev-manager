@@ -3,13 +3,61 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@9.15.0",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
   "scripts": {
-    "dev": "pnpm --dir apps/desktop dev",
-    "desktop:dev": "pnpm --dir apps/desktop dev",
-    "build": "pnpm --dir apps/desktop build",
-    "desktop:dist": "pnpm --dir apps/desktop dist",
-    "typecheck": "pnpm --dir apps/desktop typecheck",
-    "electron:dev": "pnpm --dir apps/desktop dev",
-    "electron:dist": "pnpm --dir apps/desktop dist"
+    "dev": "pnpm dev:desktop",
+    "dev:desktop": "concurrently -k \"pnpm dev:renderer\" \"pnpm dev:shell\"",
+    "dev:renderer": "vite --host 0.0.0.0 --port 1420",
+    "dev:shell": "nodemon --watch electron --ext ts --exec \"pnpm dev:shell:run\"",
+    "dev:shell:run": "pnpm build:electron && wait-on tcp:1420 && electron dist-electron/main.cjs",
+    "dev:web": "vite --host 0.0.0.0 --port 1420 --open",
+    "build": "pnpm build:renderer && pnpm build:electron",
+    "build:renderer": "tsc --noEmit && vite build",
+    "build:electron": "tsup --config tsup.config.ts",
+    "dist": "pnpm build && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "electron:dev": "pnpm dev",
+    "electron:dist": "pnpm dist"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "lucide-react": "^0.511.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@linaria/core": "^6.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "@wyw-in-js/vite": "^0.5.5",
+    "concurrently": "^9.0.1",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "nodemon": "^3.1.10",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vite": "^6.2.0",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.node-dev-mgr.desktop",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "directories": {
+      "output": "dist-release"
+    }
   }
 }

@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+dist
 dist-*
 dist-ssr
 *.local
@@ -32,5 +33,3 @@ auto-imports.d.ts
 .edgeone/*
 !.edgeone/project.json
 .tef_dist/*
-apps/desktop/src-tauri/gen/*
-  
