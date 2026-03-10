@@ -19,7 +19,7 @@ export type DevManagerState = {
   ready: boolean
   mode: 'desktop' | 'browser-demo'
   keyword: string
-  drawerOpen: boolean
+  projectDialogOpen: boolean
   form: ProjectForm
   commandOptions: ProjectCommandOption[]
   activeProjectId: string
@@ -41,7 +41,7 @@ export class DevManagerController {
       ready: false,
       mode: this.bridge.mode,
       keyword: '',
-      drawerOpen: false,
+      projectDialogOpen: false,
       form: createEmptyProjectForm(),
       commandOptions: [],
       activeProjectId: '',
@@ -103,22 +103,22 @@ export class DevManagerController {
     })
   }
 
-  openCreateDrawer = () => {
+  openCreateDialog = () => {
     this.patchState({
-      drawerOpen: true,
+      projectDialogOpen: true,
       form: createEmptyProjectForm(),
       commandOptions: [],
     })
   }
 
-  openEditDrawer = (projectId: string) => {
+  openEditDialog = (projectId: string) => {
     const project = this.findProject(projectId)
     if (!project) {
       return
     }
 
     this.patchState({
-      drawerOpen: true,
+      projectDialogOpen: true,
       form: {
         id: project.id,
         name: project.name,
@@ -132,9 +132,9 @@ export class DevManagerController {
     })
   }
 
-  closeDrawer = () => {
+  closeProjectDialog = () => {
     this.patchState({
-      drawerOpen: false,
+      projectDialogOpen: false,
       form: createEmptyProjectForm(),
       commandOptions: [],
     })
@@ -155,7 +155,7 @@ export class DevManagerController {
       }
 
       this.patchState({
-        drawerOpen: true,
+        projectDialogOpen: true,
         form: {
           id: existingId,
           name: imported.name,
@@ -209,7 +209,7 @@ export class DevManagerController {
     this.patchState({
       projects,
       activeProjectId: nextProject.id,
-      drawerOpen: false,
+      projectDialogOpen: false,
       form: createEmptyProjectForm(),
       commandOptions: [],
     })

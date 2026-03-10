@@ -2,29 +2,28 @@ import { css } from '@linaria/core'
 
 export const panelClass = css`
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-height: 0;
-  border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  height: 100%;
+  width: 100%;
   background: var(--panel-bg);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-  backdrop-filter: blur(12px);
 `
 
 export const sectionHeaderClass = css`
   display: flex;
-  min-height: 34px;
+  min-height: 40px;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 6px;
   border-bottom: 1px solid var(--line);
-  padding: 0 8px;
+  padding: 0 10px;
 `
 
 export const iconButtonClass = css`
   display: inline-flex;
-  height: 20px;
-  width: 20px;
+  height: 28px;
+  width: 28px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line);
@@ -32,6 +31,8 @@ export const iconButtonClass = css`
   background: white;
   color: #475569;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-drag: none;
   transition:
     border-color 0.18s ease,
     background-color 0.18s ease,
@@ -53,17 +54,19 @@ export const iconButtonClass = css`
 
 export const toolButtonClass = css`
   display: inline-flex;
-  height: 20px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 0 6px;
+  padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: white;
   color: #334155;
-  font-size: 10px;
+  font-size: 11px;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-drag: none;
   transition:
     border-color 0.18s ease,
     background-color 0.18s ease,

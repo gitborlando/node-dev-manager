@@ -1,21 +1,23 @@
 import { css, cx } from '@linaria/core'
 import {
-  PanelLeftClose,
-  PanelLeftOpen,
+  Copy,
+  Minus,
   Plus,
+  Square,
   Terminal,
+  X,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useDevManager } from './core'
 import { createStoppedSnapshot } from './shared'
 import { IconButton } from './component/icon-button'
 import { LogPanel } from './component/log-panel'
 import { ProjectDrawer } from './component/project-drawer'
 import { ProjectTabs } from './component/project-tabs'
-import { ToolButton } from './component/tool-button'
-import { panelClass } from './style/common'
 
 export const App = () => {
   const { controller, state } = useDevManager()
+  const [windowMaximized, setWindowMaximized] = useState(false)
   const activeProject =
     state.projects.find((project) => project.id === state.activeProjectId) ?? null
   const activeRuntime = activeProject
@@ -23,84 +25,128 @@ export const App = () => {
     : null
   const activeLogs = activeProject ? state.logsById[activeProject.id] ?? [] : []
 
+  useEffect(() => {
+    if (state.mode !== 'desktop') {
+      return
+    }
+
+    const desktopApi = window.nodeDevMgrDesktop
+    if (!desktopApi) {
+      return
+    }
+
+    void desktopApi.getWindowState().then((nextState) => {
+      setWindowMaximized(nextState.maximized)
+    })
+
+    return desktopApi.onWindowState((nextState) => {
+      setWindowMaximized(nextState.maximized)
+    })
+  }, [state.mode])
+
   return (
     <div className={pageClass}>
       <div className={shellClass}>
-        <header className={topbarClass}>
+        <header
+          className={cx(titlebarClass, windowMaximized ? titlebarMaximizedClass : '')}
+          onDoubleClick={(event) => {
+            if (state.mode !== 'desktop') {
+              return
+            }
+
+            const target = event.target
+            if (!(target instanceof HTMLElement)) {
+              return
+            }
+
+            if (target.closest('[data-no-titlebar-toggle="true"]')) {
+              return
+            }
+
+            window.nodeDevMgrDesktop?.toggleMaximizeWindow()
+          }}>
           <div className={brandWrapClass}>
-            <IconButton
-              onClick={() =>
-                state.drawerOpen ? controller.closeDrawer() : controller.openCreateDrawer()
-              }
-              title={state.drawerOpen ? '关闭抽屉' : '打开抽屉'}>
-              {state.drawerOpen ? (
-                <PanelLeftClose size={14} />
-              ) : (
-                <PanelLeftOpen size={14} />
-              )}
-            </IconButton>
             <div className={brandIconClass}>
               <Terminal size={16} />
             </div>
-            <div className={brandTitleClass}>Node Dev Manager</div>
           </div>
 
-          <div className={toolbarClass}>
-            <ToolButton
-              className={primaryToolButtonClass}
-              onClick={controller.openCreateDrawer}>
-              <Plus size={14} />
-              新建
-            </ToolButton>
-            {state.mode !== 'desktop' ? (
-              <ToolButton onClick={controller.seedDemo}>示例</ToolButton>
-            ) : null}
-          </div>
-        </header>
-
-        <main className={mainClass}>
-          <section className={cx(panelClass, workspaceClass)}>
+          <div className={tabsWrapClass}>
             <ProjectTabs
               activeProjectId={state.activeProjectId}
               projects={state.projects}
               runtimeById={state.runtimeById}
-              onClose={(projectId) => {
-                void controller.deleteProject(projectId)
-              }}
               onSelect={controller.selectProject}
-              onStart={(projectId) => {
-                void controller.startProject(projectId)
-              }}
-              onStop={(projectId) => {
-                void controller.stopProject(projectId)
-              }}
             />
+          </div>
 
-            <LogPanel
-              logs={activeLogs}
-              project={activeProject}
-              runtime={activeRuntime}
-              onClearLogs={controller.clearActiveLogs}
-              onEdit={controller.openEditDrawer}
-              onRestart={(projectId) => {
-                void controller.restartProject(projectId)
-              }}
-              onStart={(projectId) => {
-                void controller.startProject(projectId)
-              }}
-              onStop={(projectId) => {
-                void controller.stopProject(projectId)
-              }}
-            />
-          </section>
+          <div className={toolbarClass}>
+            <IconButton
+              className={primaryToolButtonClass}
+              data-no-titlebar-toggle="true"
+              title="新建项目"
+              onClick={controller.openCreateDialog}>
+              <Plus size={17} />
+            </IconButton>
+            {state.mode !== 'desktop' ? (
+              <IconButton
+                data-no-titlebar-toggle="true"
+                onClick={controller.seedDemo}
+                title="填充示例">
+                <Copy size={17} />
+              </IconButton>
+            ) : null}
+          </div>
+
+          {state.mode === 'desktop' ? (
+            <div className={windowControlsClass} data-no-titlebar-toggle="true">
+              <IconButton
+                className={windowButtonClass}
+                onClick={() => window.nodeDevMgrDesktop?.minimizeWindow()}
+                title="最小化">
+                <Minus size={16} />
+              </IconButton>
+              <IconButton
+                className={windowButtonClass}
+                onClick={() => window.nodeDevMgrDesktop?.toggleMaximizeWindow()}
+                title={windowMaximized ? '还原' : '最大化'}>
+                {windowMaximized ? <Copy size={15} /> : <Square size={15} />}
+              </IconButton>
+              <IconButton
+                className={cx(windowButtonClass, closeButtonClass)}
+                onClick={() => window.nodeDevMgrDesktop?.closeWindow()}
+                title="关闭">
+                <X size={16} />
+              </IconButton>
+            </div>
+          ) : null}
+        </header>
+
+        <main className={mainClass}>
+          <LogPanel
+            logs={activeLogs}
+            project={activeProject}
+            runtime={activeRuntime}
+            onClearLogs={controller.clearActiveLogs}
+            onEdit={controller.openEditDialog}
+            onRestart={(projectId) => {
+              void controller.restartProject(projectId)
+            }}
+            onStart={(projectId) => {
+              void controller.startProject(projectId)
+            }}
+            onStop={(projectId) => {
+              void controller.stopProject(projectId)
+            }}
+          />
 
           <ProjectDrawer
             commandOptions={state.commandOptions}
             form={state.form}
             mode={state.mode}
-            open={state.drawerOpen}
+            open={state.projectDialogOpen}
             onChange={controller.updateForm}
-            onClose={controller.closeDrawer}
+            onClose={controller.closeProjectDialog}
             onDelete={(projectId) => {
               void controller.deleteProject(projectId)
             }}
@@ -116,36 +162,39 @@ export const App = () => {
 }
 
 const pageClass = css`
-  min-height: 100vh;
+  height: 100vh;
   color: var(--text-main);
 `
 
 const shellClass = css`
   display: grid;
-  min-height: 100vh;
+  height: 100%;
   grid-template-rows: auto minmax(0, 1fr);
 `
 
-const topbarClass = css`
-  display: flex;
-  min-height: 36px;
+const titlebarClass = css`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  min-height: 40px;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  border-bottom: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.88);
-  padding: 0 8px;
-  backdrop-filter: blur(14px);
+  background: rgba(245, 248, 250, 0.96);
+  padding: 0 0 0 12px;
+  backdrop-filter: blur(12px);
+  -webkit-app-region: drag;
 
   @media (max-width: 860px) {
-    flex-wrap: wrap;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
+`
+
+const titlebarMaximizedClass = css`
+  padding-right: 8px;
 `
 
 const brandWrapClass = css`
   display: flex;
   align-items: center;
-  gap: 6px;
 `
 
 const brandIconClass = css`
@@ -160,17 +209,19 @@ const brandIconClass = css`
   color: var(--sky-700);
 `
 
-const brandTitleClass = css`
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-strong);
+const tabsWrapClass = css`
+  min-width: 0;
+  height: 40px;
+  align-self: stretch;
+  -webkit-app-region: drag;
 `
 
 const toolbarClass = css`
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
+  padding-right: 8px;
+  -webkit-app-region: no-drag;
 `
 
 const primaryToolButtonClass = css`
@@ -183,12 +234,35 @@ const primaryToolButtonClass = css`
   }
 `
 
-const mainClass = css`
-  position: relative;
-  min-height: 0;
-  padding: 8px;
+const windowControlsClass = css`
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  align-self: stretch;
+  padding-left: 2px;
+  border-left: 1px solid var(--panel-border);
+  -webkit-app-region: no-drag;
 `
 
-const workspaceClass = css`
+const windowButtonClass = css`
   height: 100%;
+  width: 34px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+`
+
+const closeButtonClass = css`
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    background: #ef4444;
+    color: white;
+  }
+`
+
+const mainClass = css`
+  position: relative;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 `

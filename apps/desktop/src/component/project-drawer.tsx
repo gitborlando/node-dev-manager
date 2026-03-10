@@ -46,7 +46,7 @@ export const ProjectDrawer = ({
           <div className={headerActionClass}>
             {form.id ? (
               <IconButton
-                className={dangerButtonClass}
+                className={cx(modalIconButtonClass, dangerButtonClass)}
                 onClick={() => {
                   onDelete(form.id)
                   onClose()
@@ -55,7 +55,7 @@ export const ProjectDrawer = ({
                 <Trash2 size={14} />
               </IconButton>
             ) : null}
-            <IconButton onClick={onClose} title="关闭">
+            <IconButton className={modalIconButtonClass} onClick={onClose} title="关闭">
               <X size={14} />
             </IconButton>
           </div>
@@ -65,10 +65,9 @@ export const ProjectDrawer = ({
           <div className={fieldStackClass}>
             <Field label="名称">
               <input
-                className={inputClass}
+                className={cx(inputClass, modalInputClass)}
                 value={form.name}
                 onChange={(event) => onChange('name', event.target.value)}
-                placeholder="web-admin"
                 required
               />
             </Field>
@@ -78,10 +77,9 @@ export const ProjectDrawer = ({
                 <div className={pathFieldClass}>
                   <FolderOpen className={folderIconClass} size={14} />
                   <input
-                    className={cx(inputClass, pathInputClass)}
+                    className={cx(inputClass, modalInputClass, pathInputClass)}
                     value={form.cwd}
                     onChange={(event) => onChange('cwd', event.target.value)}
-                    placeholder="D:/workspace/web-admin"
                     readOnly={mode === 'desktop'}
                     required
                   />
@@ -100,7 +98,7 @@ export const ProjectDrawer = ({
             <Field label="命令">
               {commandOptions.length > 0 ? (
                 <select
-                  className={cx(inputClass, monoInputClass)}
+                  className={cx(inputClass, modalInputClass, monoInputClass)}
                   value={form.command}
                   onChange={(event) => onChange('command', event.target.value)}
                   required>
@@ -112,10 +110,9 @@ export const ProjectDrawer = ({
                 </select>
               ) : (
                 <input
-                  className={cx(inputClass, monoInputClass)}
+                  className={cx(inputClass, modalInputClass, monoInputClass)}
                   value={form.command}
                   onChange={(event) => onChange('command', event.target.value)}
-                  placeholder="pnpm run dev"
                   required
                 />
               )}
@@ -126,7 +123,6 @@ export const ProjectDrawer = ({
                 className={textareaClass}
                 value={form.note}
                 onChange={(event) => onChange('note', event.target.value)}
-                placeholder="可不填"
               />
             </Field>
           </div>
@@ -153,37 +149,39 @@ const Field = ({ label, children }: { label: string; children: ReactNode }) => (
 )
 
 const overlayClass = css`
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 10;
-  background: rgba(2, 6, 23, 0.15);
-  backdrop-filter: blur(1px);
+  z-index: 40;
+  background: rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(3px);
 `
 
 const drawerClass = css`
-  position: absolute;
-  inset-block: 0;
-  left: 0;
-  z-index: 20;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 50;
   display: flex;
-  width: min(100%, 300px);
+  width: min(calc(100vw - 32px), 440px);
+  max-height: min(calc(100vh - 32px), 560px);
   flex-direction: column;
-  border-right: 1px solid var(--line);
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 10px;
   background: white;
-  box-shadow: 0 20px 80px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.18);
 `
 
 const headerClass = css`
   display: flex;
-  height: 34px;
+  height: 40px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  padding: 0 8px;
+  padding: 0 12px;
 `
 
 const headerTitleClass = css`
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-strong);
 `
@@ -198,16 +196,26 @@ const dangerButtonClass = css`
   color: var(--rose-700);
 `
 
+const modalIconButtonClass = css`
+  border: none;
+  border-radius: 6px;
+  background: #f8fafc;
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+  }
+`
+
 const formClass = css`
   min-height: 0;
   flex: 1;
   overflow: auto;
-  padding: 8px;
+  padding: 6px 12px 12px;
 `
 
 const fieldStackClass = css`
   display: grid;
-  gap: 8px;
+  gap: 12px;
 `
 
 const pathFieldClass = css`
@@ -217,7 +225,7 @@ const pathFieldClass = css`
 const pathPickerClass = css`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
+  gap: 8px;
 `
 
 const folderIconClass = css`
@@ -229,26 +237,37 @@ const folderIconClass = css`
 `
 
 const pathInputClass = css`
-  padding-left: 28px;
+  padding-left: 32px;
 `
 
 const pickerButtonClass = css`
   display: inline-flex;
-  height: 28px;
+  height: 32px;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: white;
-  padding: 0 8px;
-  font-size: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #f1f5f9;
+  padding: 0 10px;
+  font-size: 11px;
   color: #334155;
   cursor: pointer;
 
   &:hover {
-    border-color: var(--sky-200);
-    background: var(--sky-50);
-    color: var(--sky-700);
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+`
+
+const modalInputClass = css`
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding-inline: 12px;
+
+  &:focus {
+    background: #f1f5f9;
   }
 `
 
@@ -260,27 +279,24 @@ const textareaClass = css`
   min-height: 72px;
   width: 100%;
   resize: vertical;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: white;
-  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 10px 12px;
   color: var(--text-main);
   outline: none;
   transition:
-    border-color 0.18s ease,
     background-color 0.18s ease;
 
   &:focus {
-    border-color: var(--sky-200);
-    background: var(--sky-50);
+    background: #f1f5f9;
   }
 `
 
 const footerClass = css`
   display: grid;
   gap: 6px;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
+  margin-top: 10px;
 `
 
 const footerButtonClass = css`
@@ -289,24 +305,22 @@ const footerButtonClass = css`
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: white;
+  border-radius: 6px;
+  border: none;
+  background: #f8fafc;
   font-size: 11px;
   cursor: pointer;
   transition:
-    border-color 0.18s ease,
     background-color 0.18s ease,
     color 0.18s ease;
 `
 
 const primaryButtonClass = css`
-  border-color: var(--sky-200);
-  background: var(--sky-50);
+  background: #e0f2fe;
   color: var(--sky-700);
 
   &:hover {
-    background: var(--sky-100);
+    background: #bae6fd;
   }
 `
 
@@ -315,8 +329,8 @@ const fieldClass = css`
 `
 
 const fieldLabelClass = css`
-  padding-bottom: 4px;
-  font-size: 10px;
+  padding-bottom: 6px;
+  font-size: 11px;
   font-weight: 500;
   color: #475569;
 `

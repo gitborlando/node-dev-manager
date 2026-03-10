@@ -11,7 +11,7 @@ export const IconButton = ({
   className = '',
   ...rest
 }: IconButtonProps) => (
-  <button className={cx(iconButtonClass, className)} {...rest}>
+  <button className={cx(iconButtonClass, className)} draggable={false} {...rest}>
     {children}
   </button>
 )

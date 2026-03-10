@@ -7,7 +7,6 @@ import {
   type ProjectConfig,
 } from '../shared'
 import { IconButton } from './icon-button'
-import { ToolButton } from './tool-button'
 import { panelClass, sectionHeaderClass } from '../style/common'
 import { XtermLogView } from './xterm-log-view'
 
@@ -49,36 +48,29 @@ export const LogPanel = ({
         </div>
 
         <div className={headerActionClass}>
-          <ToolButton
+          <IconButton
             className={cx(primaryButtonClass, toneClassMap[snapshot?.status ?? 'stopped'])}
             disabled={!project || isBusy}
+            title={primaryLabel}
             onClick={() =>
               project && (isRunning ? onStop(project.id) : onStart(project.id))
             }>
-            {isRunning ? (
-              <>
-                <Square size={14} />
-                {primaryLabel}
-              </>
-            ) : (
-              <>
-                <Play size={14} />
-                {primaryLabel}
-              </>
-            )}
-          </ToolButton>
-          <ToolButton
+            {isRunning ? <Square size={16} /> : <Play size={16} />}
+          </IconButton>
+          <IconButton
             disabled={!project || isBusy}
+            title="重启"
             onClick={() => project && onRestart(project.id)}>
-            <RotateCw size={14} />
-            刷新
-          </ToolButton>
-          <ToolButton disabled={!project} onClick={() => project && onEdit(project.id)}>
-            <Pencil size={14} />
-            编辑
-          </ToolButton>
+            <RotateCw size={16} />
+          </IconButton>
+          <IconButton
+            disabled={!project}
+            onClick={() => project && onEdit(project.id)}
+            title="编辑">
+            <Pencil size={16} />
+          </IconButton>
           <IconButton disabled={!project} onClick={onClearLogs} title="清空日志">
-            <Eraser size={14} />
+            <Eraser size={16} />
           </IconButton>
         </div>
       </div>
@@ -108,7 +100,7 @@ const titleClass = css`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-strong);
 `
@@ -117,23 +109,30 @@ const subtitleClass = css`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-soft);
 `
 
 const headerActionClass = css`
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  justify-content: flex-end;
 `
 
 const primaryButtonClass = css`
-  min-width: 72px;
+  border-color: var(--line);
+
+  &:hover:not(:disabled) {
+    color: inherit;
+  }
 `
 
 const terminalWrapClass = css`
+  display: flex;
   min-height: 0;
   flex: 1;
+  overflow: hidden;
 `
 
 const toneClassMap = {
@@ -141,26 +140,56 @@ const toneClassMap = {
     border-color: #dbeafe;
     background: #eff6ff;
     color: #1d4ed8;
+
+    &:hover:not(:disabled) {
+      border-color: #dbeafe;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
   `,
   running: css`
     border-color: #bbf7d0;
     background: #ecfdf5;
     color: #047857;
+
+    &:hover:not(:disabled) {
+      border-color: #bbf7d0;
+      background: #d1fae5;
+      color: #047857;
+    }
   `,
   stopping: css`
     border-color: #e2e8f0;
     background: #f8fafc;
     color: #64748b;
+
+    &:hover:not(:disabled) {
+      border-color: #e2e8f0;
+      background: #f1f5f9;
+      color: #64748b;
+    }
   `,
   stopped: css`
     border-color: #e2e8f0;
     background: #f8fafc;
     color: #0f172a;
+
+    &:hover:not(:disabled) {
+      border-color: #e2e8f0;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
   `,
   error: css`
     border-color: #fecdd3;
     background: #fff1f2;
     color: #be123c;
+
+    &:hover:not(:disabled) {
+      border-color: #fecdd3;
+      background: #ffe4e6;
+      color: #be123c;
+    }
   `,
 } satisfies Record<ProcessSnapshot['status'], string>
 

@@ -29,6 +29,16 @@ const processHost = new ProcessHost((event) => {
   mainWindow?.webContents.send(desktopProcessEventChannel, event)
 })
 
+const emitWindowState = (window: BrowserWindow | null) => {
+  if (!window) {
+    return
+  }
+
+  window.webContents.send(desktopProcessChannel.windowState, {
+    maximized: window.isMaximized(),
+  })
+}
+
 const createMainWindow = async () => {
   mainWindow = new BrowserWindow({
     width: 820,
@@ -37,6 +47,7 @@ const createMainWindow = async () => {
     minHeight: 560,
     backgroundColor: '#e2e8f0',
     autoHideMenuBar: true,
+    frame: false,
     resizable: true,
     webPreferences: {
       contextIsolation: true,
@@ -63,6 +74,21 @@ const createMainWindow = async () => {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+  mainWindow.on('maximize', () => {
+    emitWindowState(mainWindow)
+  })
+  mainWindow.on('unmaximize', () => {
+    emitWindowState(mainWindow)
+  })
+  mainWindow.on('enter-full-screen', () => {
+    emitWindowState(mainWindow)
+  })
+  mainWindow.on('leave-full-screen', () => {
+    emitWindowState(mainWindow)
+  })
+  mainWindow.webContents.once('did-finish-load', () => {
+    emitWindowState(mainWindow)
+  })
 }
 
 const registerIpcHandlers = () => {
@@ -77,6 +103,33 @@ const registerIpcHandlers = () => {
     processHost.restartProcess(input),
   )
   ipcMain.handle(desktopProcessChannel.importProject, () => importProjectFromDirectory())
+  ipcMain.handle(desktopProcessChannel.getWindowState, (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender) ?? mainWindow
+    return {
+      maximized: window?.isMaximized() ?? false,
+    }
+  })
+  ipcMain.on(desktopProcessChannel.minimizeWindow, (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender) ?? mainWindow
+    window?.minimize()
+  })
+  ipcMain.on(desktopProcessChannel.toggleMaximizeWindow, (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender) ?? mainWindow
+    if (!window) {
+      return
+    }
+
+    if (window.isMaximized()) {
+      window.unmaximize()
+      return
+    }
+
+    window.maximize()
+  })
+  ipcMain.on(desktopProcessChannel.closeWindow, (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender) ?? mainWindow
+    window?.close()
+  })
 }
 
 app.whenReady().then(async () => {
@@ -131,7 +184,7 @@ const createTray = () => {
       },
     ]),
   )
-  appTray.on('double-click', () => {
+  appTray.on('click', () => {
     showMainWindow()
   })
 }

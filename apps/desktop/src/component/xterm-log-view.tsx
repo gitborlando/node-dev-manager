@@ -132,11 +132,22 @@ export const XtermLogView = ({
 }
 
 const terminalClass = css`
+  display: flex;
   min-height: 0;
   flex: 1;
   overflow: hidden;
   background: #050816;
-  padding: 8px;
+
+  & .xterm {
+    height: 100%;
+    width: 100%;
+    padding: 8px 10px;
+  }
+
+  & .xterm-viewport {
+    inset: 0;
+    width: auto !important;
+  }
 `
 
 const formatEntry = (entry: ProcessLogEntry) => {
