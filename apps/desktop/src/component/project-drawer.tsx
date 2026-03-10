@@ -1,23 +1,29 @@
 import { css, cx } from '@linaria/core'
 import type { FormEvent, ReactNode } from 'react'
 import { FolderOpen, Plus, Trash2, X } from 'lucide-react'
-import type { ProjectForm } from '@node-dev-mgr/shared'
+import type { ProjectCommandOption, ProjectForm } from '@node-dev-mgr/shared'
 import { IconButton } from './icon-button'
 import { inputClass } from '../style/common'
 
 type ProjectDrawerProps = {
+  mode: 'desktop' | 'browser-demo'
   open: boolean
   form: ProjectForm
+  commandOptions: ProjectCommandOption[]
   onChange: <K extends keyof ProjectForm>(key: K, value: ProjectForm[K]) => void
+  onImport: () => void
   onSubmit: () => void
   onClose: () => void
   onDelete: (projectId: string) => void
 }
 
 export const ProjectDrawer = ({
+  mode,
   open,
   form,
+  commandOptions,
   onChange,
+  onImport,
   onSubmit,
   onClose,
   onDelete,
@@ -68,46 +74,52 @@ export const ProjectDrawer = ({
             </Field>
 
             <Field label="目录">
-              <div className={pathFieldClass}>
-                <FolderOpen className={folderIconClass} size={14} />
-                <input
-                  className={cx(inputClass, pathInputClass)}
-                  value={form.cwd}
-                  onChange={(event) => onChange('cwd', event.target.value)}
-                  placeholder="D:/workspace/web-admin"
-                  required
-                />
+              <div className={pathPickerClass}>
+                <div className={pathFieldClass}>
+                  <FolderOpen className={folderIconClass} size={14} />
+                  <input
+                    className={cx(inputClass, pathInputClass)}
+                    value={form.cwd}
+                    onChange={(event) => onChange('cwd', event.target.value)}
+                    placeholder="D:/workspace/web-admin"
+                    readOnly={mode === 'desktop'}
+                    required
+                  />
+                </div>
+                {mode === 'desktop' ? (
+                  <button
+                    className={pickerButtonClass}
+                    onClick={onImport}
+                    type="button">
+                    选择目录
+                  </button>
+                ) : null}
               </div>
             </Field>
 
             <Field label="命令">
-              <input
-                className={cx(inputClass, monoInputClass)}
-                value={form.command}
-                onChange={(event) => onChange('command', event.target.value)}
-                placeholder="pnpm dev"
-                required
-              />
+              {commandOptions.length > 0 ? (
+                <select
+                  className={cx(inputClass, monoInputClass)}
+                  value={form.command}
+                  onChange={(event) => onChange('command', event.target.value)}
+                  required>
+                  {commandOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={cx(inputClass, monoInputClass)}
+                  value={form.command}
+                  onChange={(event) => onChange('command', event.target.value)}
+                  placeholder="pnpm run dev"
+                  required
+                />
+              )}
             </Field>
-
-            <div className={dualFieldClass}>
-              <Field label="端口">
-                <input
-                  className={inputClass}
-                  value={form.port}
-                  onChange={(event) => onChange('port', event.target.value)}
-                  placeholder="3000"
-                />
-              </Field>
-              <Field label="分组">
-                <input
-                  className={inputClass}
-                  value={form.group}
-                  onChange={(event) => onChange('group', event.target.value)}
-                  placeholder="前端"
-                />
-              </Field>
-            </div>
 
             <Field label="备注">
               <textarea
@@ -209,6 +221,12 @@ const pathFieldClass = css`
   position: relative;
 `
 
+const pathPickerClass = css`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+`
+
 const folderIconClass = css`
   position: absolute;
   left: 8px;
@@ -221,14 +239,28 @@ const pathInputClass = css`
   padding-left: 28px;
 `
 
-const monoInputClass = css`
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+const pickerButtonClass = css`
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #334155;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--sky-200);
+    background: var(--sky-50);
+    color: var(--sky-700);
+  }
 `
 
-const dualFieldClass = css`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+const monoInputClass = css`
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 `
 
 const textareaClass = css`

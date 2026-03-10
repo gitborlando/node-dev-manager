@@ -5,6 +5,7 @@ export default defineConfig({
   clean: true,
   external: ['electron'],
   format: ['cjs'],
+  noExternal: ['@node-dev-mgr/shared'],
   outDir: 'dist-electron',
   outExtension: () => ({
     js: '.cjs',

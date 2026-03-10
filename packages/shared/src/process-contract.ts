@@ -7,8 +7,6 @@ export type ProjectConfig = {
   name: string
   cwd: string
   command: string
-  port: string
-  group: string
   note: string
   createdAt: string
   updatedAt: string
@@ -19,9 +17,18 @@ export type ProjectForm = {
   name: string
   cwd: string
   command: string
-  port: string
-  group: string
   note: string
+}
+
+export type ProjectCommandOption = {
+  label: string
+  value: string
+}
+
+export type ProjectImportResult = {
+  cwd: string
+  name: string
+  commandOptions: ProjectCommandOption[]
 }
 
 export type ProcessStartInput = Pick<ProjectConfig, 'id' | 'cwd' | 'command'>
@@ -67,8 +74,6 @@ export const createEmptyProjectForm = (): ProjectForm => ({
   name: '',
   cwd: '',
   command: '',
-  port: '',
-  group: '',
   note: '',
 })
 

@@ -1,10 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { DesktopProcessApi, ProcessEvent } from '@node-dev-mgr/shared'
 import {
   desktopProcessChannel,
   desktopProcessEventChannel,
-  type DesktopProcessApi,
-  type ProcessEvent,
-} from '@node-dev-mgr/shared'
+} from './ipc-channel'
 
 const desktopApi: DesktopProcessApi = {
   listProcesses: () => ipcRenderer.invoke(desktopProcessChannel.list),
@@ -12,6 +11,7 @@ const desktopApi: DesktopProcessApi = {
   stopProcess: (processId) =>
     ipcRenderer.invoke(desktopProcessChannel.stop, processId),
   restartProcess: (input) => ipcRenderer.invoke(desktopProcessChannel.restart, input),
+  importProjectFromDirectory: () => ipcRenderer.invoke(desktopProcessChannel.importProject),
   onProcessEvent: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: ProcessEvent) => {
       listener(payload)

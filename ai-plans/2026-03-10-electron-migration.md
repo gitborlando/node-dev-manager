@@ -40,3 +40,20 @@
 
 - `apps/desktop/src-tauri/Cargo.toml` 当前仍有既有未提交改动，本次未触碰。
 - `electron-builder` 仍提示缺少 `description` 和 `author`，但不影响 `win-unpacked` 产物生成。
+
+## 2026-03-10 第二轮范围
+
+- 窗口关闭改为最小化到托盘，不直接退出应用。
+- 新建项目改为选择目录，并自动读取该目录 `package.json` 的 `scripts` 供用户选择。
+- 项目模型去掉 `group` 和 `port`。
+- 主界面改为顶部选项卡切换项目，日志区域承担主要工作区。
+- 管理语义按“独立项目目录”处理，不强调 monorepo/workspace。
+
+## 第二轮实施日志
+
+- 21:18 调整共享类型与存储迁移逻辑，移除项目 `group/port` 字段，并兼容旧本地缓存。
+- 21:24 补齐 Electron IPC：目录选择、读取 `package.json`、脚本排序与包管理器识别。
+- 21:31 增加窗口关闭到托盘、托盘恢复与退出菜单。
+- 21:37 将主界面改为顶部项目选项卡，删除旧左侧项目列表。
+- 21:40 抽屉改为“选目录 + 选命令”，桌面模式通过系统目录选择器导入。
+- 21:45 `pnpm typecheck`、`pnpm build`、`pnpm --filter @node-dev-mgr/desktop dist -- --dir` 全部通过。

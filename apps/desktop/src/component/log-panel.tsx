@@ -95,10 +95,10 @@ export const LogPanel = ({
           PID: {snapshot?.pid ?? '-'}
         </span>
         <span className={chipClass}>
-          端口: {project?.port || '-'}
+          命令: {project?.command || '-'}
         </span>
         <span className={chipClass}>
-          分组: {project?.group || '-'}
+          备注: {project?.note || '-'}
         </span>
         <span className={chipClass}>
           更新时间: {snapshot ? formatDateTime(snapshot.updatedAt) : '-'}

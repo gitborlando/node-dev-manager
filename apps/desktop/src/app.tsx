@@ -5,7 +5,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
-  Search,
   Terminal,
 } from 'lucide-react'
 import { useDevManager } from '@node-dev-mgr/process-core'
@@ -13,25 +12,12 @@ import { createStoppedSnapshot } from '@node-dev-mgr/shared'
 import { IconButton } from './component/icon-button'
 import { LogPanel } from './component/log-panel'
 import { ProjectDrawer } from './component/project-drawer'
-import { ProjectList } from './component/project-list'
+import { ProjectTabs } from './component/project-tabs'
 import { ToolButton } from './component/tool-button'
-import { inputClass, panelClass, sectionHeaderClass } from './style/common'
+import { panelClass } from './style/common'
 
 export const App = () => {
   const { controller, state } = useDevManager()
-  const keyword = state.keyword.trim().toLowerCase()
-
-  const filteredProjects = state.projects.filter((project) => {
-    if (!keyword) {
-      return true
-    }
-
-    return [project.name, project.cwd, project.command, project.group, project.note]
-      .join(' ')
-      .toLowerCase()
-      .includes(keyword)
-  })
-
   const activeProject =
     state.projects.find((project) => project.id === state.activeProjectId) ?? null
   const activeRuntime = activeProject
@@ -88,43 +74,31 @@ export const App = () => {
         </header>
 
         <main className={mainClass}>
-          <div className={contentGridClass}>
-            <section className={panelClass}>
-              <div className={sectionHeaderClass}>
-                <div>
-                  <div className={sectionTitleClass}>项目</div>
-                  <div className={sectionSubtitleClass}>
-                    配置与运行态分离，日志实时推送
-                  </div>
-                </div>
-                <div className={searchWrapClass}>
-                  <Search className={searchIconClass} size={14} />
-                  <input
-                    className={cx(inputClass, searchInputClass)}
-                    value={state.keyword}
-                    onChange={(event) => controller.setKeyword(event.target.value)}
-                    placeholder="搜索项目"
-                  />
+          <section className={cx(panelClass, workspaceClass)}>
+            <div className={workspaceHeaderClass}>
+              <div>
+                <div className={sectionTitleClass}>项目会话</div>
+                <div className={sectionSubtitleClass}>
+                  每个项目一个标签，日志和控制都在同一工作区完成
                 </div>
               </div>
+            </div>
 
-              <ProjectList
-                activeProjectId={state.activeProjectId}
-                projects={filteredProjects}
-                runtimeById={state.runtimeById}
-                onEdit={controller.openEditDrawer}
-                onRestart={(projectId) => {
-                  void controller.restartProject(projectId)
-                }}
-                onSelect={controller.selectProject}
-                onStart={(projectId) => {
-                  void controller.startProject(projectId)
-                }}
-                onStop={(projectId) => {
-                  void controller.stopProject(projectId)
-                }}
-              />
-            </section>
+            <ProjectTabs
+              activeProjectId={state.activeProjectId}
+              projects={state.projects}
+              runtimeById={state.runtimeById}
+              onClose={(projectId) => {
+                void controller.deleteProject(projectId)
+              }}
+              onSelect={controller.selectProject}
+              onStart={(projectId) => {
+                void controller.startProject(projectId)
+              }}
+              onStop={(projectId) => {
+                void controller.stopProject(projectId)
+              }}
+            />
 
             <LogPanel
               logs={activeLogs}
@@ -145,15 +119,20 @@ export const App = () => {
                 void controller.stopProject(projectId)
               }}
             />
-          </div>
+          </section>
 
           <ProjectDrawer
+            commandOptions={state.commandOptions}
             form={state.form}
+            mode={state.mode}
             open={state.drawerOpen}
             onChange={controller.updateForm}
             onClose={controller.closeDrawer}
             onDelete={(projectId) => {
               void controller.deleteProject(projectId)
+            }}
+            onImport={() => {
+              void controller.importProjectDirectory()
             }}
             onSubmit={controller.submitForm}
           />
@@ -252,16 +231,16 @@ const mainClass = css`
   padding: 16px;
 `
 
-const contentGridClass = css`
-  display: grid;
+const workspaceClass = css`
   height: 100%;
-  min-height: 0;
-  gap: 16px;
-  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+`
 
-  @media (max-width: 1080px) {
-    grid-template-columns: 1fr;
-  }
+const workspaceHeaderClass = css`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 16px;
 `
 
 const sectionTitleClass = css`
@@ -273,21 +252,4 @@ const sectionTitleClass = css`
 const sectionSubtitleClass = css`
   font-size: 10px;
   color: var(--text-soft);
-`
-
-const searchWrapClass = css`
-  position: relative;
-`
-
-const searchIconClass = css`
-  position: absolute;
-  top: 9px;
-  left: 8px;
-  color: var(--text-soft);
-  pointer-events: none;
-`
-
-const searchInputClass = css`
-  width: 192px;
-  padding-left: 28px;
 `

@@ -1,5 +1,6 @@
 import type {
   ProcessEvent,
+  ProjectImportResult,
   ProcessSnapshot,
   ProcessStartInput,
 } from './process-contract'
@@ -19,5 +20,6 @@ export type DesktopProcessApi = {
   startProcess: (input: ProcessStartInput) => Promise<ProcessSnapshot>
   stopProcess: (processId: string) => Promise<ProcessSnapshot>
   restartProcess: (input: ProcessStartInput) => Promise<ProcessSnapshot>
+  importProjectFromDirectory: () => Promise<ProjectImportResult | null>
   onProcessEvent: (listener: (event: ProcessEvent) => void) => () => void
 }

@@ -13,8 +13,12 @@ export const projectStorage = {
       if (!raw) {
         return []
       }
-      const parsed = JSON.parse(raw) as ProjectConfig[]
-      return Array.isArray(parsed) ? parsed : []
+      const parsed = JSON.parse(raw) as unknown
+      if (!Array.isArray(parsed)) {
+        return []
+      }
+
+      return parsed.flatMap(normalizeProjectConfig)
     } catch {
       return []
     }
@@ -25,4 +29,41 @@ export const projectStorage = {
   },
 
   createDraft: (): ProjectForm => createEmptyProjectForm(),
+}
+
+const normalizeProjectConfig = (value: unknown): ProjectConfig[] => {
+  if (!value || typeof value !== 'object') {
+    return []
+  }
+
+  const record = value as Record<string, unknown>
+  const id = toStringValue(record.id)
+  const name = toStringValue(record.name)
+  const cwd = toStringValue(record.cwd)
+  const command = toStringValue(record.command)
+  if (!id || !name || !cwd || !command) {
+    return []
+  }
+
+  return [
+    {
+      id,
+      name,
+      cwd,
+      command,
+      note: toStringValue(record.note),
+      createdAt: toIsoString(record.createdAt),
+      updatedAt: toIsoString(record.updatedAt),
+    },
+  ]
+}
+
+const toStringValue = (value: unknown) => (typeof value === 'string' ? value : '')
+
+const toIsoString = (value: unknown) => {
+  if (typeof value === 'string' && value) {
+    return value
+  }
+
+  return new Date().toISOString()
 }

@@ -5,9 +5,11 @@ import {
   type ProcessLogEntry,
   type ProcessSnapshot,
   type ProcessStartInput,
+  type ProjectCommandOption,
   type ProjectConfig,
   type ProjectForm,
 } from '@node-dev-mgr/shared'
+import { getDesktopApi } from './electron-process-bridge'
 import { createProcessBridge } from './process-bridge'
 import { projectStorage } from './project-storage'
 
@@ -19,6 +21,7 @@ export type DevManagerState = {
   keyword: string
   drawerOpen: boolean
   form: ProjectForm
+  commandOptions: ProjectCommandOption[]
   activeProjectId: string
   projects: ProjectConfig[]
   runtimeById: Record<string, ProcessSnapshot>
@@ -40,6 +43,7 @@ export class DevManagerController {
       keyword: '',
       drawerOpen: false,
       form: createEmptyProjectForm(),
+      commandOptions: [],
       activeProjectId: '',
       projects: [],
       runtimeById: {},
@@ -103,6 +107,7 @@ export class DevManagerController {
     this.patchState({
       drawerOpen: true,
       form: createEmptyProjectForm(),
+      commandOptions: [],
     })
   }
 
@@ -119,10 +124,11 @@ export class DevManagerController {
         name: project.name,
         cwd: project.cwd,
         command: project.command,
-        port: project.port,
-        group: project.group,
         note: project.note,
       },
+      commandOptions: project.command
+        ? [{ label: project.command, value: project.command }]
+        : [],
     })
   }
 
@@ -130,7 +136,41 @@ export class DevManagerController {
     this.patchState({
       drawerOpen: false,
       form: createEmptyProjectForm(),
+      commandOptions: [],
     })
+  }
+
+  importProjectDirectory = async () => {
+    if (this.state.mode !== 'desktop') {
+      return
+    }
+
+    const existingId = this.state.form.id
+    const existingNote = this.state.form.note
+
+    try {
+      const imported = await getDesktopApi().importProjectFromDirectory()
+      if (!imported) {
+        return
+      }
+
+      this.patchState({
+        drawerOpen: true,
+        form: {
+          id: existingId,
+          name: imported.name,
+          cwd: imported.cwd,
+          command: imported.commandOptions[0]?.value ?? '',
+          note: existingNote,
+        },
+        commandOptions: imported.commandOptions,
+      })
+    } catch (error) {
+      this.pushSystemLog(
+        this.state.activeProjectId,
+        `读取项目目录失败：${toErrorMessage(error)}`,
+      )
+    }
   }
 
   updateForm = <K extends keyof ProjectForm>(key: K, value: ProjectForm[K]) => {
@@ -171,6 +211,7 @@ export class DevManagerController {
       activeProjectId: nextProject.id,
       drawerOpen: false,
       form: createEmptyProjectForm(),
+      commandOptions: [],
     })
 
     this.pushSystemLog(
@@ -233,8 +274,6 @@ export class DevManagerController {
         name: 'web-admin',
         cwd: 'D:/workspace/web-admin',
         command: 'pnpm dev',
-        port: '5173',
-        group: '前端',
         note: 'Vite 管理后台',
         createdAt: now,
         updatedAt: now,
@@ -244,8 +283,6 @@ export class DevManagerController {
         name: 'api-server',
         cwd: 'D:/workspace/api-server',
         command: 'pnpm start:dev',
-        port: '3000',
-        group: '后端',
         note: 'NestJS API',
         createdAt: now,
         updatedAt: now,
@@ -255,8 +292,6 @@ export class DevManagerController {
         name: 'queue-worker',
         cwd: 'D:/workspace/queue-worker',
         command: 'pnpm worker:dev',
-        port: '',
-        group: '任务',
         note: '异步消费 worker',
         createdAt: now,
         updatedAt: now,
@@ -464,8 +499,6 @@ const normalizeForm = (form: ProjectForm): ProjectForm => ({
   name: form.name.trim(),
   cwd: form.cwd.trim(),
   command: form.command.trim(),
-  port: form.port.trim(),
-  group: form.group.trim(),
   note: form.note.trim(),
 })
 

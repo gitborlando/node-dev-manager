@@ -15,7 +15,7 @@ export const createElectronProcessBridge = (): ProcessBridge => ({
   subscribe: async (listener) => getDesktopApi().onProcessEvent(listener),
 })
 
-const getDesktopApi = (): DesktopProcessApi => {
+export const getDesktopApi = (): DesktopProcessApi => {
   const desktopApi = window.nodeDevMgrDesktop
   if (!desktopApi) {
     throw new Error('DESKTOP_API_UNAVAILABLE')
