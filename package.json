@@ -16,10 +16,12 @@
     "build:renderer": "tsc --noEmit && vite build",
     "build:electron": "tsup --config tsup.config.ts",
     "dist": "pnpm build && electron-builder",
+    "dist:portable": "pnpm build && electron-builder --win portable",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "electron:dev": "pnpm dev",
-    "electron:dist": "pnpm dist"
+    "electron:dist": "pnpm dist",
+    "electron:portable": "pnpm dist:portable"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",

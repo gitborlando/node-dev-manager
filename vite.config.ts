@@ -16,6 +16,7 @@ const styleEntrypointPattern = new RegExp(
 )
 
 export default defineConfig({
+  base: './',
   plugins: [
     wywInJs({
       include: [styleEntrypointPattern],
