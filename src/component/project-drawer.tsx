@@ -1,8 +1,10 @@
 import { css, cx } from '@linaria/core'
 import type { FormEvent, ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { FolderOpen, Plus, Trash2, X } from 'lucide-react'
 import type { ProjectCommandOption, ProjectForm } from '../shared'
 import { IconButton } from './icon-button'
+import { ConfirmDialog } from './confirm-dialog'
 import { inputClass } from '../style/common'
 
 type ProjectDrawerProps = {
@@ -14,7 +16,7 @@ type ProjectDrawerProps = {
   onImport: () => void
   onSubmit: () => void
   onClose: () => void
-  onDelete: (projectId: string) => void
+  onDelete: (projectId: string) => Promise<void> | void
 }
 
 export const ProjectDrawer = ({
@@ -28,6 +30,21 @@ export const ProjectDrawer = ({
   onClose,
   onDelete,
 }: ProjectDrawerProps) => {
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deletePending, setDeletePending] = useState(false)
+
+  useEffect(() => {
+    if (!open) {
+      setConfirmOpen(false)
+      setDeletePending(false)
+    }
+  }, [open])
+
+  useEffect(() => {
+    setConfirmOpen(false)
+    setDeletePending(false)
+  }, [form.id])
+
   if (!open) {
     return null
   }
@@ -35,6 +52,22 @@ export const ProjectDrawer = ({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     onSubmit()
+  }
+
+  const handleDelete = async () => {
+    if (!form.id || deletePending) {
+      return
+    }
+
+    setDeletePending(true)
+
+    try {
+      await onDelete(form.id)
+      setConfirmOpen(false)
+      onClose()
+    } finally {
+      setDeletePending(false)
+    }
   }
 
   return (
@@ -47,10 +80,7 @@ export const ProjectDrawer = ({
             {form.id ? (
               <IconButton
                 className={cx(modalIconButtonClass, dangerButtonClass)}
-                onClick={() => {
-                  onDelete(form.id)
-                  onClose()
-                }}
+                onClick={() => setConfirmOpen(true)}
                 title="删除项目">
                 <Trash2 size={14} />
               </IconButton>
@@ -136,6 +166,30 @@ export const ProjectDrawer = ({
             </button>
           </div>
         </form>
+        <ConfirmDialog
+          cancelLabel="保留项目"
+          confirmDanger
+          confirmLabel="确认删除"
+          description={
+            <>
+              删除后会移除项目配置与当前日志记录。
+              <br />
+              <strong>{form.name || '这个项目'}</strong>
+              {' 将从列表中消失。'}
+            </>
+          }
+          onCancel={() => {
+            if (!deletePending) {
+              setConfirmOpen(false)
+            }
+          }}
+          onConfirm={() => {
+            void handleDelete()
+          }}
+          open={confirmOpen}
+          pending={deletePending}
+          title="确认删除这个项目？"
+        />
       </aside>
     </>
   )

@@ -17,7 +17,7 @@ import { desktopProcessChannel, desktopProcessEventChannel } from './ipc-channel
 const rendererDevUrl = 'http://127.0.0.1:1420'
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const rendererIndexPath = path.join(__dirname, '..', 'dist', 'index.html')
-const trayIconPath = path.join(__dirname, '..', 'assets', 'icon.ico')
+const appIconPath = path.join(__dirname, '..', 'assets', 'icon.png')
 
 let mainWindow: BrowserWindow | null = null
 let appTray: Tray | null = null
@@ -48,6 +48,7 @@ const createMainWindow = async () => {
     backgroundColor: '#e2e8f0',
     autoHideMenuBar: true,
     frame: false,
+    icon: appIconPath,
     resizable: true,
     webPreferences: {
       contextIsolation: true,
@@ -165,7 +166,7 @@ app.on('window-all-closed', () => {
 })
 
 const createTray = () => {
-  const icon = nativeImage.createFromPath(trayIconPath)
+  const icon = nativeImage.createFromPath(appIconPath)
   appTray = new Tray(icon)
   appTray.setToolTip('Node Dev Manager')
   appTray.setContextMenu(

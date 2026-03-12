@@ -4,12 +4,12 @@ import {
   Minus,
   Plus,
   Square,
-  Terminal,
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useDevManager } from './core'
 import { createStoppedSnapshot } from './shared'
+import { ProductIcon } from './component/product-icon'
 import { IconButton } from './component/icon-button'
 import { LogPanel } from './component/log-panel'
 import { ProjectDrawer } from './component/project-drawer'
@@ -67,7 +67,7 @@ export const App = () => {
           }}>
           <div className={brandWrapClass}>
             <div className={brandIconClass}>
-              <Terminal size={16} />
+              <ProductIcon />
             </div>
           </div>
 
@@ -147,9 +147,7 @@ export const App = () => {
             open={state.projectDialogOpen}
             onChange={controller.updateForm}
             onClose={controller.closeProjectDialog}
-            onDelete={(projectId) => {
-              void controller.deleteProject(projectId)
-            }}
+            onDelete={controller.deleteProject}
             onImport={() => {
               void controller.importProjectDirectory()
             }}
