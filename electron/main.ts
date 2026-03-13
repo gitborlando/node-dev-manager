@@ -34,6 +34,25 @@ if (process.platform === 'win32') {
   app.setAppUserModelId(desktopAppId)
 }
 
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+
+if (!hasSingleInstanceLock) {
+  app.exit(0)
+}
+
+const ensureOpenAtLogin = () => {
+  if (!app.isPackaged || process.platform !== 'win32') {
+    return
+  }
+
+  app.setLoginItemSettings({
+    enabled: true,
+    name: desktopAppId,
+    openAtLogin: true,
+    path: process.execPath,
+  })
+}
+
 const emitWindowState = (window: BrowserWindow | null) => {
   if (!window) {
     return
@@ -45,6 +64,10 @@ const emitWindowState = (window: BrowserWindow | null) => {
 }
 
 const createMainWindow = async () => {
+  if (mainWindow) {
+    return mainWindow
+  }
+
   mainWindow = new BrowserWindow({
     width: 820,
     height: 560,
@@ -95,6 +118,8 @@ const createMainWindow = async () => {
   mainWindow.webContents.once('did-finish-load', () => {
     emitWindowState(mainWindow)
   })
+
+  return mainWindow
 }
 
 const registerIpcHandlers = () => {
@@ -138,37 +163,55 @@ const registerIpcHandlers = () => {
   })
 }
 
-app.whenReady().then(async () => {
-  createTray()
-  registerIpcHandlers()
-  await createMainWindow()
+if (hasSingleInstanceLock) {
+  app.on('second-instance', () => {
+    if (!app.isReady()) {
+      return
+    }
 
-  app.on('activate', () => {
-    if (mainWindow === null || BrowserWindow.getAllWindows().length === 0) {
-      void createMainWindow()
+    if (mainWindow === null) {
+      void createMainWindow().then(() => {
+        showMainWindow()
+      })
       return
     }
 
     showMainWindow()
   })
-})
 
-app.on('before-quit', (event) => {
-  isQuitting = true
+  app.whenReady().then(async () => {
+    ensureOpenAtLogin()
+    createTray()
+    registerIpcHandlers()
+    await createMainWindow()
 
-  if (quitReady) {
-    return
-  }
+    app.on('activate', () => {
+      if (mainWindow === null || BrowserWindow.getAllWindows().length === 0) {
+        void createMainWindow()
+        return
+      }
 
-  event.preventDefault()
-  void requestAppQuit()
-})
+      showMainWindow()
+    })
+  })
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    return
-  }
-})
+  app.on('before-quit', (event) => {
+    isQuitting = true
+
+    if (quitReady) {
+      return
+    }
+
+    event.preventDefault()
+    void requestAppQuit()
+  })
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      return
+    }
+  })
+}
 
 const createTray = () => {
   const icon = nativeImage.createFromPath(appIconPath)
