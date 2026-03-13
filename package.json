@@ -2,6 +2,8 @@
   "name": "node-dev-mgr",
   "private": true,
   "version": "0.1.0",
+  "description": "A desktop app for managing local Node.js development projects.",
+  "author": "EDY",
   "packageManager": "pnpm@9.15.0",
   "type": "module",
   "main": "dist-electron/main.cjs",
@@ -41,6 +43,7 @@
     "electron": "^37.2.0",
     "electron-builder": "^26.0.12",
     "nodemon": "^3.1.10",
+    "rcedit": "^5.0.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vite": "^6.2.0",
@@ -48,6 +51,7 @@
   },
   "build": {
     "appId": "com.node-dev-mgr.desktop",
+    "afterPack": "dist-electron/after-pack.cjs",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -55,7 +59,7 @@
       "package.json"
     ],
     "win": {
-      "icon": "assets/icon.ico",
+      "icon": "assets/icon.png",
       "signAndEditExecutable": false
     },
     "directories": {

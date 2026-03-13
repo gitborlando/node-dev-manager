@@ -18,6 +18,7 @@ const rendererDevUrl = 'http://127.0.0.1:1420'
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const rendererIndexPath = path.join(__dirname, '..', 'dist', 'index.html')
 const appIconPath = path.join(__dirname, '..', 'assets', 'icon.png')
+const desktopAppId = 'com.node-dev-mgr.desktop'
 
 let mainWindow: BrowserWindow | null = null
 let appTray: Tray | null = null
@@ -28,6 +29,10 @@ let quitReady = false
 const processHost = new ProcessHost((event) => {
   mainWindow?.webContents.send(desktopProcessEventChannel, event)
 })
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId(desktopAppId)
+}
 
 const emitWindowState = (window: BrowserWindow | null) => {
   if (!window) {
