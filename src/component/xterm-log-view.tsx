@@ -1,7 +1,7 @@
 import { css } from '@linaria/core'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ProcessLogEntry } from '../shared'
 import '@xterm/xterm/css/xterm.css'
 
@@ -16,18 +16,28 @@ export const XtermLogView = ({
   projectId,
   emptyMessage,
 }: XtermLogViewProps) => {
+  const [copyNotice, setCopyNotice] = useState('')
   const containerRef = useRef<HTMLDivElement | null>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const renderedRef = useRef({
-    count: 0,
+    logs: [] as ProcessLogEntry[],
     projectId: '',
+    empty: false,
   })
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) {
       return
+    }
+    let active = true
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined
+    const showCopyNotice = (message: string) => {
+      if (!active) return
+      clearTimeout(noticeTimer)
+      setCopyNotice(message)
+      noticeTimer = setTimeout(() => setCopyNotice(''), 1600)
     }
 
     const terminal = new Terminal({
@@ -42,22 +52,65 @@ export const XtermLogView = ({
       theme: {
         background: '#050816',
         foreground: '#d7e3f4',
-        brightBlack: '#5a687a',
-        brightBlue: '#8fd5ff',
-        brightCyan: '#7be3ff',
-        brightGreen: '#8ef7b0',
-        brightRed: '#ff90a5',
         cursor: '#d7e3f4',
+        selectionBackground: '#334766',
+        selectionInactiveBackground: '#263449',
+        black: '#050816',
         red: '#ff6f91',
         green: '#6ee7a8',
         yellow: '#f6c86f',
         blue: '#77c8ff',
+        magenta: '#c4a5ff',
         cyan: '#66d9ef',
+        white: '#d7e3f4',
+        brightBlack: '#5a687a',
+        brightRed: '#ff90a5',
+        brightGreen: '#8ef7b0',
+        brightYellow: '#ffe09a',
+        brightBlue: '#8fd5ff',
+        brightMagenta: '#dac5ff',
+        brightCyan: '#7be3ff',
+        brightWhite: '#f1f5ff',
       },
     })
     const fitAddon = new FitAddon()
     terminal.loadAddon(fitAddon)
     terminal.open(container)
+    const copySelection = () => {
+      const text = terminal.getSelection()
+      if (!text) return
+      const copying = window.nodeDevMgrDesktop
+        ? window.nodeDevMgrDesktop.copyText(text)
+        : navigator.clipboard.writeText(text)
+      void copying.then(
+        () => showCopyNotice('已复制'),
+        () => showCopyNotice('复制失败，请重试'),
+      )
+    }
+    terminal.attachCustomKeyEventHandler((event) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return true
+      const key = event.key.toLowerCase()
+      if (key === 'c' && terminal.hasSelection()) {
+        if (event.type === 'keydown') {
+          event.preventDefault()
+          copySelection()
+        }
+        return false
+      }
+      if (key === 'a') {
+        if (event.type === 'keydown') {
+          event.preventDefault()
+          terminal.selectAll()
+        }
+        return false
+      }
+      return true
+    })
+    const handleContextMenu = (event: MouseEvent) => {
+      event.preventDefault()
+      copySelection()
+    }
+    container.addEventListener('contextmenu', handleContextMenu)
     terminalRef.current = terminal
     fitRef.current = fitAddon
 
@@ -74,10 +127,14 @@ export const XtermLogView = ({
 
     observer.observe(container)
     return () => {
+      active = false
+      clearTimeout(noticeTimer)
       observer.disconnect()
+      container.removeEventListener('contextmenu', handleContextMenu)
       renderedRef.current = {
-        count: 0,
+        logs: [],
         projectId: '',
+        empty: false,
       }
       fitRef.current = null
       terminalRef.current = null
@@ -93,60 +150,85 @@ export const XtermLogView = ({
     }
 
     const nextProjectId = projectId ?? ''
+    const previous = renderedRef.current
+    const lastEntry = previous.logs.at(-1)
+    const lastIndex = lastEntry ? logs.indexOf(lastEntry) : -1
     const needReset =
-      renderedRef.current.projectId !== nextProjectId ||
-      logs.length < renderedRef.current.count
+      previous.projectId !== nextProjectId ||
+      previous.empty ||
+      (lastEntry !== undefined && lastIndex < 0)
 
     if (needReset) {
-      terminal.clear()
       terminal.reset()
-      renderedRef.current = {
-        count: 0,
-        projectId: nextProjectId,
-      }
     }
 
     if (logs.length === 0) {
-      if (renderedRef.current.count > 0 && !needReset) {
-        return
-      }
       terminal.writeln(`\x1b[90m${emptyMessage}\x1b[0m`)
-      renderedRef.current.count = 1
-      renderedRef.current.projectId = nextProjectId
+      renderedRef.current = { logs, projectId: nextProjectId, empty: true }
       fitAddon.fit()
       return
     }
 
-    const startIndex = Math.min(renderedRef.current.count, logs.length)
+    const startIndex = needReset ? 0 : lastIndex + 1
     for (const entry of logs.slice(startIndex)) {
       terminal.writeln(formatEntry(entry))
     }
 
-    renderedRef.current.count = logs.length
-    renderedRef.current.projectId = nextProjectId
-    terminal.scrollToBottom()
+    renderedRef.current = { logs, projectId: nextProjectId, empty: false }
+    if (!terminal.hasSelection()) terminal.scrollToBottom()
     fitAddon.fit()
   }, [emptyMessage, logs, projectId])
 
-  return <div className={terminalClass} ref={containerRef} />
+  return (
+    <div className={terminalWrapClass}>
+      <div className={terminalClass} ref={containerRef} />
+      {copyNotice ? <div className={copyNoticeClass} role="status">{copyNotice}</div> : null}
+    </div>
+  )
 }
+
+const terminalWrapClass = css`
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  background: #050816;
+`
+
+const copyNoticeClass = css`
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  z-index: 1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  pointer-events: none;
+`
 
 const terminalClass = css`
   display: flex;
   min-height: 0;
   flex: 1;
   overflow: hidden;
+  min-width: 0;
   background: #050816;
 
   & .xterm {
     height: 100%;
     width: 100%;
     padding: 8px 10px;
+    background: #050816;
   }
 
-  & .xterm-viewport {
+  & .xterm .xterm-viewport {
     inset: 0;
     width: auto !important;
+    background-color: #050816;
   }
 `
 

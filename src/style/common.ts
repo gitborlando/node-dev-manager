@@ -22,6 +22,7 @@ export const sectionHeaderClass = css`
 
 export const iconButtonClass = css`
   display: inline-flex;
+  padding: 0;
   height: 28px;
   width: 28px;
   align-items: center;
@@ -33,6 +34,9 @@ export const iconButtonClass = css`
   cursor: pointer;
   user-select: none;
   -webkit-user-drag: none;
+  & > svg {
+    flex-shrink: 0;
+  }
   transition:
     border-color 0.18s ease,
     background-color 0.18s ease,

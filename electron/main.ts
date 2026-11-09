@@ -9,9 +9,11 @@ import {
   dialog,
   ipcMain,
   nativeImage,
+  clipboard,
 } from 'electron'
-import type { ProjectCommandOption, ProjectImportResult } from '../src/shared'
+import type { ProjectCommandOption, ProjectConfig, ProjectImportResult } from '../src/shared'
 import { ProcessHost } from './process-host'
+import { ProjectRegistry } from './project-registry'
 import { desktopProcessChannel, desktopProcessEventChannel } from './ipc-channel'
 
 const rendererDevUrl = 'http://127.0.0.1:1420'
@@ -25,6 +27,10 @@ let appTray: Tray | null = null
 let isQuitting = false
 let quitTask: Promise<void> | null = null
 let quitReady = false
+let projectRegistry: ProjectRegistry
+let registeredProjects: ProjectConfig[] | null = null
+let registryLoadError: unknown = null
+let servicesStarted = false
 
 const processHost = new ProcessHost((event) => {
   mainWindow?.webContents.send(desktopProcessEventChannel, event)
@@ -124,15 +130,35 @@ const createMainWindow = async () => {
 
 const registerIpcHandlers = () => {
   ipcMain.handle(desktopProcessChannel.list, () => processHost.listProcesses())
-  ipcMain.handle(desktopProcessChannel.start, (_event, input) =>
-    processHost.startProcess(input),
-  )
+  ipcMain.handle(desktopProcessChannel.logs, () => processHost.getLogs())
+  ipcMain.handle(desktopProcessChannel.copyText, (_event, text: string) => {
+    if (typeof text !== 'string') throw new Error('INVALID_CLIPBOARD_TEXT')
+    clipboard.writeText(text)
+  })
+  ipcMain.handle(desktopProcessChannel.loadProjects, async (_event, fallback: ProjectConfig[]) => {
+    if (registryLoadError) throw registryLoadError
+    // Migrate the existing renderer-local registrations only on first use.
+    if (registeredProjects === null) {
+      registeredProjects = await projectRegistry.save(fallback)
+    }
+    await startRegisteredServices()
+    return registeredProjects
+  })
+  ipcMain.handle(desktopProcessChannel.saveProjects, async (_event, projects: ProjectConfig[]) => {
+    if (registryLoadError) throw registryLoadError
+    registeredProjects = await projectRegistry.save(projects)
+  })
+  ipcMain.handle(desktopProcessChannel.start, (_event, input) => {
+    if (isQuitting) throw new Error('APP_QUITTING')
+    return processHost.startProcess(input)
+  })
   ipcMain.handle(desktopProcessChannel.stop, (_event, processId) =>
     processHost.stopProcess(processId),
   )
-  ipcMain.handle(desktopProcessChannel.restart, (_event, input) =>
-    processHost.restartProcess(input),
-  )
+  ipcMain.handle(desktopProcessChannel.restart, (_event, input) => {
+    if (isQuitting) throw new Error('APP_QUITTING')
+    return processHost.restartProcess(input)
+  })
   ipcMain.handle(desktopProcessChannel.importProject, () => importProjectFromDirectory())
   ipcMain.handle(desktopProcessChannel.getWindowState, (event) => {
     const window = BrowserWindow.fromWebContents(event.sender) ?? mainWindow
@@ -181,8 +207,16 @@ if (hasSingleInstanceLock) {
 
   app.whenReady().then(async () => {
     ensureOpenAtLogin()
+    projectRegistry = new ProjectRegistry(path.join(app.getPath('userData'), 'project-configs.json'))
+    try {
+      registeredProjects = await projectRegistry.load()
+    } catch (error) {
+      registryLoadError = error
+      dialog.showErrorBox('服务配置读取失败', `原配置文件已保留，请检查：\n${String(error)}`)
+    }
     createTray()
     registerIpcHandlers()
+    await startRegisteredServices()
     await createMainWindow()
 
     app.on('activate', () => {
@@ -217,25 +251,73 @@ const createTray = () => {
   const icon = nativeImage.createFromPath(appIconPath)
   appTray = new Tray(icon)
   appTray.setToolTip('Node Dev Manager')
-  appTray.setContextMenu(
-    Menu.buildFromTemplate([
+  appTray.on('right-click', () => {
+    void createTrayMenu().then(menu => appTray?.popUpContextMenu(menu))
+  })
+  appTray.on('click', () => {
+    showMainWindow()
+  })
+}
+
+const createTrayMenu = async () => {
+  const snapshots = await processHost.listProcesses()
+  const runtimeById = new Map(snapshots.map(snapshot => [snapshot.id, snapshot]))
+  const serviceItems = (registeredProjects ?? []).map(project => {
+    const snapshot = runtimeById.get(project.id)
+    const isRunning = snapshot?.status === 'running'
+    const isBusy = processHost.isBusy(project.id) ||
+      snapshot?.status === 'starting' || snapshot?.status === 'stopping'
+    return {
+      label: `${isBusy ? '处理中' : isRunning ? '刷新' : '启动'}：${project.name}`,
+      enabled: !isBusy,
+      click: () => { void runProjectAction(project) },
+    }
+  })
+  return Menu.buildFromTemplate([
       {
         label: '显示主窗口',
         click: () => {
           showMainWindow()
         },
       },
+      { type: 'separator' },
+      ...(serviceItems.length ? serviceItems : [{ label: '暂无登记服务', enabled: false }]),
+      { type: 'separator' },
       {
         label: '退出',
         click: () => {
           void requestAppQuit()
         },
       },
-    ]),
-  )
-  appTray.on('click', () => {
-    showMainWindow()
-  })
+    ])
+}
+
+const runProjectAction = async (project: ProjectConfig) => {
+  if (isQuitting || processHost.isBusy(project.id)) return
+  try {
+    const snapshots = await processHost.listProcesses()
+    if (isQuitting || processHost.isBusy(project.id)) return
+    const snapshot = snapshots.find(item => item.id === project.id)
+    if (snapshot?.status === 'running') {
+      await processHost.restartProcess(project)
+    } else {
+      await processHost.startProcess(project)
+    }
+  } catch (error) {
+    void dialog.showMessageBox({
+      type: 'error',
+      title: '服务操作失败',
+      message: project.name,
+      detail: String(error),
+    }).catch(error => console.error('显示服务错误失败', error))
+  }
+}
+
+const startRegisteredServices = async () => {
+  if (servicesStarted || registeredProjects === null || registryLoadError || isQuitting) return
+  servicesStarted = true
+  // One failed service must not prevent the others from starting.
+  await Promise.allSettled(registeredProjects.map(project => runProjectAction(project)))
 }
 
 const showMainWindow = () => {
@@ -258,22 +340,34 @@ const requestAppQuit = async () => {
 
   isQuitting = true
   quitTask = (async () => {
+    await processHost.dispose()
     appTray?.destroy()
     appTray = null
-    await processHost.dispose()
     quitReady = true
     app.quit()
-  })()
+  })().catch(error => {
+    isQuitting = false
+    quitTask = null
+    void dialog.showMessageBox({
+      type: 'error',
+      title: '未能关闭全部服务',
+      message: '部分服务尚未退出，应用已保留运行，请重试退出。',
+      detail: String(error),
+    }).catch(error => console.error('显示退出错误失败', error))
+  })
 
   return quitTask
 }
 
 const importProjectFromDirectory = async (): Promise<ProjectImportResult | null> => {
   const window = BrowserWindow.getFocusedWindow() ?? mainWindow ?? undefined
-  const result = await dialog.showOpenDialog(window, {
+  const options = {
     title: '选择项目目录',
     properties: ['openDirectory'],
-  })
+  } satisfies Electron.OpenDialogOptions
+  const result = await (window
+    ? dialog.showOpenDialog(window, options)
+    : dialog.showOpenDialog(options))
 
   const targetPath = result.filePaths[0]
   if (result.canceled || !targetPath) {

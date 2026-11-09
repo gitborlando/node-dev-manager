@@ -12,11 +12,15 @@ import {
 
 const desktopApi: DesktopProcessApi = {
   listProcesses: () => ipcRenderer.invoke(desktopProcessChannel.list),
+  getLogs: () => ipcRenderer.invoke(desktopProcessChannel.logs),
   startProcess: (input) => ipcRenderer.invoke(desktopProcessChannel.start, input),
   stopProcess: (processId) =>
     ipcRenderer.invoke(desktopProcessChannel.stop, processId),
   restartProcess: (input) => ipcRenderer.invoke(desktopProcessChannel.restart, input),
   importProjectFromDirectory: () => ipcRenderer.invoke(desktopProcessChannel.importProject),
+  loadProjects: (fallback) => ipcRenderer.invoke(desktopProcessChannel.loadProjects, fallback),
+  saveProjects: (projects) => ipcRenderer.invoke(desktopProcessChannel.saveProjects, projects),
+  copyText: (text) => ipcRenderer.invoke(desktopProcessChannel.copyText, text),
   minimizeWindow: () => {
     ipcRenderer.send(desktopProcessChannel.minimizeWindow)
   },

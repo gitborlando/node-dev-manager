@@ -35,6 +35,8 @@ export class DevManagerController {
   private readonly listeners = new Set<Listener>()
   private readonly bridge = createProcessBridge()
   private unsubscribe: null | (() => void) = null
+  private lifecycleVersion = 0
+  private readonly pendingActions = new Set<string>()
 
   constructor() {
     this.state = {
@@ -61,32 +63,51 @@ export class DevManagerController {
   getState = () => this.state
 
   initialize = async () => {
-    if (this.state.ready) {
-      return
-    }
-
-    const projects = projectStorage.load()
+    const version = ++this.lifecycleVersion
+    const projects = this.state.ready ? this.state.projects : projectStorage.load()
     this.replaceState({
       ...this.state,
       projects,
-      activeProjectId: projects[0]?.id ?? '',
-      ready: true,
+      activeProjectId: this.state.activeProjectId || projects[0]?.id || '',
     })
 
-    this.unsubscribe = await this.bridge.subscribe(this.handleEvent)
+    const unsubscribe = await this.bridge.subscribe(this.handleEvent)
+    if (version !== this.lifecycleVersion) {
+      unsubscribe()
+      return
+    }
+    this.unsubscribe = unsubscribe
 
     try {
+      if (this.state.mode === 'desktop') {
+        const savedProjects = await getDesktopApi().loadProjects(projects)
+        if (version !== this.lifecycleVersion) return
+        projectStorage.save(savedProjects)
+        this.patchState({
+          projects: savedProjects,
+          activeProjectId: savedProjects.some(project => project.id === this.state.activeProjectId)
+            ? this.state.activeProjectId : savedProjects[0]?.id ?? '',
+        })
+        const logsById = await getDesktopApi().getLogs()
+        if (version !== this.lifecycleVersion) return
+        this.patchState({ logsById })
+      }
       const snapshots = await this.bridge.listProcesses()
+      if (version !== this.lifecycleVersion) return
       this.mergeSnapshots(snapshots)
     } catch (error) {
+      if (version !== this.lifecycleVersion) return
       this.pushSystemLog(
         this.state.activeProjectId,
         `初始化运行态失败：${toErrorMessage(error)}`,
       )
+    } finally {
+      if (version === this.lifecycleVersion) this.patchState({ ready: true })
     }
   }
 
   dispose = () => {
+    this.lifecycleVersion++
     this.unsubscribe?.()
     this.unsubscribe = null
   }
@@ -101,6 +122,17 @@ export class DevManagerController {
     this.patchState({
       activeProjectId: projectId,
     })
+  }
+
+  reorderProjects = (sourceId: string, targetId: string, after: boolean) => {
+    if (sourceId === targetId) return
+    const source = this.findProject(sourceId)
+    if (!source || !this.findProject(targetId)) return
+    const projects = this.state.projects.filter(project => project.id !== sourceId)
+    const targetIndex = projects.findIndex(project => project.id === targetId)
+    projects.splice(targetIndex + (after ? 1 : 0), 0, source)
+    this.saveProjects(projects)
+    this.patchState({ projects })
   }
 
   openCreateDialog = () => {
@@ -204,7 +236,7 @@ export class DevManagerController {
         )
       : [nextProject, ...this.state.projects]
 
-    projectStorage.save(projects)
+    this.saveProjects(projects)
 
     this.patchState({
       projects,
@@ -217,23 +249,11 @@ export class DevManagerController {
     this.pushSystemLog(nextProject.id, current ? '项目配置已更新' : '项目已保存')
   }
 
-  clearActiveLogs = () => {
-    const activeProjectId = this.state.activeProjectId
-    if (!activeProjectId) {
-      return
-    }
-
+  private clearProjectLogs = (projectId: string) => {
     this.patchState({
       logsById: {
         ...this.state.logsById,
-        [activeProjectId]: [
-          {
-            processId: activeProjectId,
-            level: 'system',
-            message: '日志已清空',
-            time: new Date().toISOString(),
-          },
-        ],
+        [projectId]: [],
       },
     })
   }
@@ -250,7 +270,7 @@ export class DevManagerController {
     delete runtimeById[projectId]
     delete logsById[projectId]
 
-    projectStorage.save(projects)
+    this.saveProjects(projects)
 
     this.patchState({
       projects,
@@ -330,7 +350,7 @@ export class DevManagerController {
       ],
     }
 
-    projectStorage.save(projects)
+    this.saveProjects(projects)
     this.replaceState({
       ...this.state,
       projects,
@@ -342,10 +362,11 @@ export class DevManagerController {
 
   startProject = async (projectId: string) => {
     const project = this.findProject(projectId)
-    if (!project) {
+    if (!project || this.pendingActions.has(projectId) || isActiveStatus(this.getSnapshot(projectId).status)) {
       return
     }
 
+    this.pendingActions.add(projectId)
     this.selectProject(projectId)
     this.upsertSnapshot({
       ...this.getSnapshot(projectId),
@@ -359,6 +380,8 @@ export class DevManagerController {
       this.upsertSnapshot(snapshot)
     } catch (error) {
       this.failProcess(projectId, `启动失败：${toErrorMessage(error)}`)
+    } finally {
+      this.pendingActions.delete(projectId)
     }
   }
 
@@ -384,10 +407,12 @@ export class DevManagerController {
 
   restartProject = async (projectId: string) => {
     const project = this.findProject(projectId)
-    if (!project) {
+    const status = this.getSnapshot(projectId).status
+    if (!project || this.pendingActions.has(projectId) || status === 'starting' || status === 'stopping') {
       return
     }
 
+    this.pendingActions.add(projectId)
     this.selectProject(projectId)
     this.upsertSnapshot({
       ...this.getSnapshot(projectId),
@@ -401,6 +426,8 @@ export class DevManagerController {
       this.upsertSnapshot(snapshot)
     } catch (error) {
       this.failProcess(projectId, `重启失败：${toErrorMessage(error)}`)
+    } finally {
+      this.pendingActions.delete(projectId)
     }
   }
 
@@ -408,8 +435,13 @@ export class DevManagerController {
     this.state.projects.find((project) => project.id === projectId) ?? null
 
   private handleEvent = (event: ProcessEvent) => {
+    if (event.type === 'reset') {
+      this.clearProjectLogs(event.processId)
+      return
+    }
     if (event.type === 'status') {
-      this.upsertSnapshot(event.snapshot)
+      this.upsertSnapshot(this.pendingActions.has(event.processId) && event.snapshot.status === 'stopped'
+        ? { ...event.snapshot, status: 'starting' } : event.snapshot)
       return
     }
 
@@ -419,6 +451,15 @@ export class DevManagerController {
       message: event.message,
       time: event.time,
     })
+  }
+
+  private saveProjects = (projects: ProjectConfig[]) => {
+    projectStorage.save(projects)
+    if (this.state.mode === 'desktop') {
+      void getDesktopApi().saveProjects(projects).catch(error => {
+        this.pushSystemLog(this.state.activeProjectId, `保存服务配置失败：${toErrorMessage(error)}`)
+      })
+    }
   }
 
   private mergeSnapshots = (snapshots: ProcessSnapshot[]) => {

@@ -1,0 +1,113 @@
+name: Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要打包的已存在标签，例如 v0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Windows x64
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Validate tag and package version
+        run: node scripts/prepare-release.ts check-version
+
+      - name: Setup pnpm from packageManager
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          run_install: false
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build installer and portable executable
+        run: pnpm dist:release
+
+      - name: Check outputs and generate SHA-256 checksums
+        run: node scripts/prepare-release.ts checksums
+
+      - name: Upload Windows release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-x64
+          path: |
+            dist-release/*-setup-x64.exe
+            dist-release/*-portable-x64.exe
+            dist-release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  release:
+    name: Create or update draft release
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows release files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-x64
+          path: release-assets
+
+      - name: Verify downloaded checksums
+        working-directory: release-assets
+        run: sha256sum --check SHA256SUMS.txt
+
+      - name: Create draft or replace assets in existing draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if is_draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft'); then
+            if [[ "$is_draft" != 'true' ]]; then
+              echo '::error::该版本已经公开发布；拒绝覆盖，请使用新版本标签。'
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            prerelease=()
+            if [[ "$RELEASE_TAG" == *-* ]]; then
+              prerelease=(--prerelease)
+            fi
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --verify-tag --draft --title "$RELEASE_TAG" --generate-notes \
+              "${prerelease[@]}"
+          fi

@@ -65,7 +65,13 @@ export type ProcessLogEvent = {
   time: string
 }
 
-export type ProcessEvent = ProcessStatusEvent | ProcessLogEvent
+export type ProcessResetEvent = {
+  type: 'reset'
+  processId: string
+  time: string
+}
+
+export type ProcessEvent = ProcessStatusEvent | ProcessLogEvent | ProcessResetEvent
 
 export const processEventName = 'process-event'
 

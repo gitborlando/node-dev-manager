@@ -2,13 +2,13 @@ import { css, cx } from '@linaria/core'
 import {
   Copy,
   Minus,
+  Pencil,
   Plus,
   Square,
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useDevManager } from './core'
-import { createStoppedSnapshot } from './shared'
 import { ProductIcon } from './component/product-icon'
 import { IconButton } from './component/icon-button'
 import { LogPanel } from './component/log-panel'
@@ -20,9 +20,6 @@ export const App = () => {
   const [windowMaximized, setWindowMaximized] = useState(false)
   const activeProject =
     state.projects.find((project) => project.id === state.activeProjectId) ?? null
-  const activeRuntime = activeProject
-    ? state.runtimeById[activeProject.id] ?? createStoppedSnapshot(activeProject.id)
-    : null
   const activeLogs = activeProject ? state.logsById[activeProject.id] ?? [] : []
 
   useEffect(() => {
@@ -77,19 +74,31 @@ export const App = () => {
               projects={state.projects}
               runtimeById={state.runtimeById}
               onSelect={controller.selectProject}
+              onReorder={controller.reorderProjects}
+              onStart={(projectId) => { void controller.startProject(projectId) }}
+              onRestart={(projectId) => { void controller.restartProject(projectId) }}
             />
           </div>
 
           <div className={toolbarClass}>
             <IconButton
-              className={primaryToolButtonClass}
+              className={toolbarButtonClass}
               data-no-titlebar-toggle="true"
-              title="新建项目"
+              disabled={!activeProject}
+              title="编辑当前服务"
+              onClick={() => activeProject && controller.openEditDialog(activeProject.id)}>
+              <Pencil size={14} />
+            </IconButton>
+            <IconButton
+              className={toolbarButtonClass}
+              data-no-titlebar-toggle="true"
+              title="添加新服务"
               onClick={controller.openCreateDialog}>
               <Plus size={17} />
             </IconButton>
             {state.mode !== 'desktop' ? (
               <IconButton
+                className={toolbarButtonClass}
                 data-no-titlebar-toggle="true"
                 onClick={controller.seedDemo}
                 title="填充示例">
@@ -126,18 +135,6 @@ export const App = () => {
           <LogPanel
             logs={activeLogs}
             project={activeProject}
-            runtime={activeRuntime}
-            onClearLogs={controller.clearActiveLogs}
-            onEdit={controller.openEditDialog}
-            onRestart={(projectId) => {
-              void controller.restartProject(projectId)
-            }}
-            onStart={(projectId) => {
-              void controller.startProject(projectId)
-            }}
-            onStop={(projectId) => {
-              void controller.stopProject(projectId)
-            }}
           />
 
           <ProjectDrawer
@@ -222,13 +219,14 @@ const toolbarClass = css`
   -webkit-app-region: no-drag;
 `
 
-const primaryToolButtonClass = css`
-  border-color: var(--sky-200);
-  background: var(--sky-50);
-  color: var(--sky-700);
+const toolbarButtonClass = css`
+  border: none;
+  background: transparent;
+  color: #475569;
 
   &:hover:not(:disabled) {
-    background: var(--sky-100);
+    background: #e5e7eb;
+    color: #334155;
   }
 `
 

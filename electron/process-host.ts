@@ -5,6 +5,7 @@ import type { Readable } from 'node:stream'
 import type {
   ProcessEvent,
   ProcessLogLevel,
+  ProcessLogEntry,
   ProcessSnapshot,
   ProcessStartInput,
   ProcessStatus,
@@ -22,21 +23,35 @@ type ManagedProcess = {
 
 export class ProcessHost {
   private readonly processes = new Map<string, ManagedProcess>()
+  private readonly logsById = new Map<string, ProcessLogEntry[]>()
+  private readonly operations = new Map<string, Promise<ProcessSnapshot>>()
 
   constructor(
-    private readonly emitEvent: (event: ProcessEvent) => void,
+    private readonly publishEvent: (event: ProcessEvent) => void,
   ) {}
 
   listProcesses = async () =>
     Array.from(this.processes.values(), ({ snapshot }) => cloneSnapshot(snapshot))
 
-  startProcess = async (input: ProcessStartInput) => {
+  getLogs = () => Object.fromEntries(this.logsById)
+
+  isBusy = (processId: string) => this.operations.has(processId)
+
+  startProcess = (input: ProcessStartInput) =>
+    this.runExclusive(input.id, () => this.startManagedProcess(input))
+
+  stopProcess = (processId: string) =>
+    this.runExclusive(processId, () => this.stopManagedProcess(processId))
+
+  private startManagedProcess = async (input: ProcessStartInput) => {
     const existing = this.processes.get(input.id)
-    if (existing && isActiveStatus(existing.snapshot.status)) {
+    if (existing && (existing.child || isActiveStatus(existing.snapshot.status))) {
       throw new Error('PROCESS_ALREADY_RUNNING')
     }
 
     const child = createManagedChild(input)
+    // Invalid working directories may fail before a PID is allocated.
+    child.once('error', () => {})
     if (!child.pid) {
       throw new Error('PROCESS_PID_MISSING')
     }
@@ -80,17 +95,18 @@ export class ProcessHost {
     return cloneSnapshot(snapshot)
   }
 
-  stopProcess = async (processId: string) => {
+  private stopManagedProcess = async (processId: string) => {
     const record = this.processes.get(processId)
     if (!record) {
       throw new Error('PROCESS_NOT_FOUND')
     }
 
-    if (!isActiveStatus(record.snapshot.status)) {
+    if (!record.child) {
       return cloneSnapshot(record.snapshot)
     }
 
-    if (!record.snapshot.pid) {
+    const pid = record.snapshot.pid
+    if (!pid) {
       throw new Error('PROCESS_PID_MISSING')
     }
 
@@ -115,8 +131,8 @@ export class ProcessHost {
       time: isoNow(),
     })
 
-    const stopped = await killProcessTree(record.snapshot.pid)
-    if (!stopped) {
+    const stopped = await killProcessTree(pid)
+    if (!stopped && record.child) {
       record.snapshot = {
         ...record.snapshot,
         status: 'error',
@@ -134,31 +150,51 @@ export class ProcessHost {
     }
 
     await waitForExit(record.waitForExit)
+    if (record.child) throw new Error('PROCESS_EXIT_TIMEOUT')
     return cloneSnapshot(this.processes.get(processId)?.snapshot ?? record.snapshot)
   }
 
-  restartProcess = async (input: ProcessStartInput) => {
+  restartProcess = (input: ProcessStartInput) => this.runExclusive(input.id, async () => {
     const existing = this.processes.get(input.id)
-    if (existing && isActiveStatus(existing.snapshot.status)) {
-      await this.stopProcess(input.id)
+    if (existing && (existing.child || isActiveStatus(existing.snapshot.status))) {
+      await this.stopManagedProcess(input.id)
       await delay(350)
     }
 
-    return this.startProcess(input)
-  }
+    this.emitEvent({ type: 'reset', processId: input.id, time: isoNow() })
+    return this.startManagedProcess(input)
+  })
 
   dispose = async () => {
+    await Promise.allSettled(this.operations.values())
     const activeIds = Array.from(this.processes.entries())
-      .filter(([, record]) => isActiveStatus(record.snapshot.status))
+      .filter(([, record]) => record.child !== null)
       .map(([processId]) => processId)
 
-    for (const processId of activeIds) {
-      try {
-        await this.stopProcess(processId)
-      } catch {
-        continue
-      }
+    const results = await Promise.allSettled(activeIds.map(processId => this.stopProcess(processId)))
+    const failedIds = activeIds.filter((_, index) => results[index].status === 'rejected')
+    if (failedIds.length) throw new Error(`PROCESS_SHUTDOWN_FAILED: ${failedIds.join(', ')}`)
+  }
+
+  private runExclusive = async (processId: string, operation: () => Promise<ProcessSnapshot>) => {
+    if (this.operations.has(processId)) throw new Error('PROCESS_BUSY')
+    const task = Promise.resolve().then(operation)
+    this.operations.set(processId, task)
+    try {
+      return await task
+    } finally {
+      this.operations.delete(processId)
     }
+  }
+
+  private emitEvent = (event: ProcessEvent) => {
+    if (event.type === 'reset') this.logsById.set(event.processId, [])
+    if (event.type === 'log') {
+      const { processId, level, message, time } = event
+      const logs = this.logsById.get(processId) ?? []
+      this.logsById.set(processId, [...logs, { processId, level, message, time }].slice(-400))
+    }
+    this.publishEvent(event)
   }
 
   private bindLogStream = (

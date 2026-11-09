@@ -19,6 +19,7 @@
     "build:electron": "tsup --config tsup.config.ts",
     "dist": "pnpm build && electron-builder",
     "dist:portable": "pnpm build && electron-builder --win portable",
+    "dist:release": "pnpm build && electron-builder --win nsis portable --x64 --publish never",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "electron:dev": "pnpm dev",
@@ -61,6 +62,12 @@
     "win": {
       "icon": "assets/icon.png",
       "signAndEditExecutable": false
+    },
+    "nsis": {
+      "artifactName": "${name}-${version}-setup-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${name}-${version}-portable-${arch}.${ext}"
     },
     "directories": {
       "output": "dist-release"

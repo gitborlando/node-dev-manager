@@ -102,6 +102,7 @@ export const browserProcessBridge: ProcessBridge = {
       await browserProcessBridge.stopProcess(input.id)
       await wait(180)
     }
+    emit({ type: 'reset', processId: input.id, time: new Date().toISOString() })
     return browserProcessBridge.startProcess(input)
   },
 
